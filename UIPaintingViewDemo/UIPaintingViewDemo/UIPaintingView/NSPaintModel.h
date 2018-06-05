@@ -67,10 +67,10 @@ typedef void(^DataExecuteCompletionBlock)(id result);
  */
 @property (nonatomic, assign) NSUInteger strokeId;
 @property (nonatomic, strong) UIColor *strokeColor;
-@property (nonatomic, strong) NSMutableArray<NSPaintPoint*> *strokePoints;
 
 -(instancetype)initWithEventId:(NSUInteger)eventId;
 
+-(NSArray<NSPaintPoint*>*)paintPoints;
 -(void)addPaintPoint:(NSPaintPoint*)paintPoint;
 
 +(NSPaintStroke*)loadWithEventId:(NSUInteger)eventId strokeId:(NSUInteger)strokeId;
@@ -108,7 +108,12 @@ typedef void(^DataExecuteCompletionBlock)(id result);
 
 //eventId就是创建的时间（微妙us）
 @property (nonatomic, assign) NSUInteger eventId;
-@property (nonatomic, strong) NSMutableArray<NSNumber*> *strokeIds;
+
+-(NSArray<NSNumber*>*)paintStrokeIds;
+
+//返回paintStrokeId
+-(NSUInteger)saveWithPaintStroke:(NSPaintStroke*)paintStroke;
+-(NSUInteger)deleteWithPaintStroke:(NSPaintStroke*)paintStroke;
 
 +(NSPaintEvent*)loadWithEventId:(NSUInteger)eventId;
 
@@ -117,9 +122,8 @@ typedef void(^DataExecuteCompletionBlock)(id result);
 -(NSTimeInterval)getStartPlayTimeIntervalForStroke:(NSPaintStroke*)stroke;
 //获取抬笔播放时间
 -(NSTimeInterval)getEndPlayTimeIntervalForStroke:(NSPaintStroke*)stroke;
-
+//获取某一笔某一个点的播放时间
 -(NSTimeInterval)getPointPlayTimeInterForStorke:(NSPaintStroke*)stroke point:(NSPaintPoint*)paintPoint;
-
 -(BOOL)shouldSave;
 
 +(NSString*)getEventSnapshotImagePath;

@@ -112,6 +112,8 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 @interface NSPaintStroke ()
 @property (nonatomic, assign) NSUInteger eventId;
 
+@property (nonatomic, strong) NSMutableArray<NSPaintPoint*> *strokePoints;
+
 -(void)save;
 -(void)deleteFromFile;
 +(void)deleteWithEventId:(NSUInteger)eventId strokeId:(NSUInteger)strokeId;
@@ -163,6 +165,11 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
         self.eventId = eventId;
     }
     return self;
+}
+
+-(NSArray<NSPaintPoint*>*)paintPoints
+{
+    return [self.strokePoints copy];
 }
 
 -(void)addPaintPoint:(NSPaintPoint*)paintPoint
@@ -319,8 +326,12 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
  *整个一次画画的所有的笔记
  ***********************************************************************/
 @interface NSPaintEvent()
--(NSUInteger)saveWithPaintStroke:(NSPaintStroke*)paintStroke;
--(NSUInteger)deleteWithPaintStroke:(NSPaintStroke*)paintStroke;
+
+@property (nonatomic, strong) NSMutableArray<NSNumber*> *strokeIds;
+
+//-(NSUInteger)saveWithPaintStroke:(NSPaintStroke*)paintStroke;
+//-(NSUInteger)deleteWithPaintStroke:(NSPaintStroke*)paintStroke;
+
 
 -(void)save;
 
@@ -361,6 +372,11 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
         _strokeIds = [NSMutableArray array];
     }
     return _strokeIds;
+}
+
+-(NSArray<NSNumber*>*)paintStrokeIds
+{
+    return [self.strokeIds copy];
 }
 
 -(NSUInteger)saveWithPaintStroke:(NSPaintStroke*)paintStroke
@@ -542,6 +558,24 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     }
     [self _getEventTimeInterval:NSTimeActionTypeBE strokeTimeInterval:-1 findStroke:&stroke];
     return stroke.endPlayTimeInterval;
+}
+
+-(NSTimeInterval)getPointPlayTimeInterForStorke:(NSPaintStroke*)stroke point:(NSPaintPoint*)paintPoint
+{
+    NSTimeInterval start = [self getStartPlayTimeIntervalForStroke:stroke];
+    
+    if (!IS_AVAILABLE_NSSET_OBJ([stroke paintPoints])) {
+        return start;
+    }
+    NSPaintPoint *first = [[stroke paintPoints] firstObject];
+    NSTimeInterval currentDiff = [NSPaintPoint getTimeIntervalFrom:first to:paintPoint];
+    if (currentDiff < 0) {
+        return start;
+    }
+    if (currentDiff > [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval) {
+        currentDiff = [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval;
+    }
+    return start + currentDiff;
 }
 
 -(BOOL)shouldSave

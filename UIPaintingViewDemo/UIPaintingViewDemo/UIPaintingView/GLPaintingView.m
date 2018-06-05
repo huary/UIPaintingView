@@ -536,9 +536,16 @@ typedef struct {
     
     CGFloat red = 0.0, green = 0.0, blue = 0.0, alpha = 0.0;
     [self.backgroundColor getRed:&red green:&green blue:&blue alpha:&alpha];
-    
     glClearColor(red, green, blue, alpha);
     glClear(GL_COLOR_BUFFER_BIT);
+    
+//    CGFloat w = self.bounds.size.width/2;
+//    CGFloat h = self.bounds.size.height/2;
+//    glEnable(GL_SCISSOR_TEST);
+//    glScissor(0,0,w,h);
+//    glClearColor(red, green, blue, alpha);
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // (or whatever buffer you want to clear)
+//    glDisable(GL_SCISSOR_TEST);
 }
 
 -(void)presentRenderbuffer

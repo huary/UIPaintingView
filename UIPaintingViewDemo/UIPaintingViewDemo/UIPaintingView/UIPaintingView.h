@@ -46,6 +46,4 @@
 
 -(void)deleteLastStroke;
 
-//-(void)testRender;
-
 @end

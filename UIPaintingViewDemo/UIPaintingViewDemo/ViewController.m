@@ -58,10 +58,10 @@
             break;
         }
         case 5: {
-            self.paintingView.playRatio = 5.0;
+//            self.paintingView.playRatio = 5.0;
             [self.paintingView playBack:YES];
-            sender.tag = 6;
-            [sender setTitle:@"stop" forState:UIControlStateNormal];
+//            sender.tag = 6;
+//            [sender setTitle:@"stop" forState:UIControlStateNormal];
             break;
         }
         case 6: {
@@ -152,7 +152,7 @@
     
     NSLog(@"end.loc=%@",NSStringFromCGPoint(currLoc));
     
-    NSPaintPoint *last = [self.paintingView.paintEvent.lastPaintStroke.strokePoints lastObject];
+    NSPaintPoint *last = [[self.paintingView.paintEvent.lastPaintStroke paintPoints] lastObject];
     if (CGPointEqualToPoint(prevLoc, last.point)) {
         
 //        NSPaintPoint *paintPoint = [[NSPaintPoint alloc] initWithPoint:currLoc status:NSPaintStatusEnd lineWidth:self.paintingView.brushWidth];
