@@ -8,15 +8,11 @@
 
 #import "ViewController.h"
 #import "UIPaintingView.h"
-#import "YZHUICropView.h"
 
 @interface ViewController ()<UIPaintViewDelegate>
 
 /** 注释 */
 @property (nonatomic, strong) UIPaintingView *paintingView;
-
-/** 注释 */
-@property (nonatomic, strong) YZHUICropView *cropView;
 
 @end
 

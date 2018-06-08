@@ -22,7 +22,6 @@
 		1C535FFD20C53E2200A6A351 /* fileUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C535FF420C53E2200A6A351 /* fileUtil.m */; };
 		1C535FFE20C53E2200A6A351 /* shaderUtil.c in Sources */ = {isa = PBXBuildFile; fileRef = 1C535FF520C53E2200A6A351 /* shaderUtil.c */; };
 		1C53600420C54DD600A6A351 /* Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C53600320C54DD600A6A351 /* Utils.m */; };
-		1C53600820C6D02500A6A351 /* YZHUICropView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C53600720C6D02500A6A351 /* YZHUICropView.m */; };
 		1C53601120C6D70D00A6A351 /* UIGestureRecognizer+YZHState.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C53600C20C6D70D00A6A351 /* UIGestureRecognizer+YZHState.m */; };
 		1C53601220C6D70D00A6A351 /* UIImage+TintColor.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C53600E20C6D70D00A6A351 /* UIImage+TintColor.m */; };
 		1C53601320C6D70D00A6A351 /* UIView+UIGestureRecognizer.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C53601020C6D70D00A6A351 /* UIView+UIGestureRecognizer.m */; };
@@ -58,8 +57,6 @@
 		1C53600020C5403400A6A351 /* Macro.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Macro.h; sourceTree = "<group>"; };
 		1C53600220C54DD600A6A351 /* Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Utils.h; sourceTree = "<group>"; };
 		1C53600320C54DD600A6A351 /* Utils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Utils.m; sourceTree = "<group>"; };
-		1C53600620C6D02500A6A351 /* YZHUICropView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = YZHUICropView.h; sourceTree = "<group>"; };
-		1C53600720C6D02500A6A351 /* YZHUICropView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = YZHUICropView.m; sourceTree = "<group>"; };
 		1C53600B20C6D70D00A6A351 /* UIGestureRecognizer+YZHState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIGestureRecognizer+YZHState.h"; sourceTree = "<group>"; };
 		1C53600C20C6D70D00A6A351 /* UIGestureRecognizer+YZHState.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIGestureRecognizer+YZHState.m"; sourceTree = "<group>"; };
 		1C53600D20C6D70D00A6A351 /* UIImage+TintColor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImage+TintColor.h"; sourceTree = "<group>"; };
@@ -101,7 +98,6 @@
 			isa = PBXGroup;
 			children = (
 				1C53600920C6D70D00A6A351 /* Base */,
-				1C53600520C6D02500A6A351 /* YZHUICropView */,
 				1C53600120C54DD600A6A351 /* Utils */,
 				1C53600020C5403400A6A351 /* Macro.h */,
 				1C535FFF20C5403400A6A351 /* PrefixHeader.pch */,
@@ -171,15 +167,6 @@
 				1C53600320C54DD600A6A351 /* Utils.m */,
 			);
 			path = Utils;
-			sourceTree = "<group>";
-		};
-		1C53600520C6D02500A6A351 /* YZHUICropView */ = {
-			isa = PBXGroup;
-			children = (
-				1C53600620C6D02500A6A351 /* YZHUICropView.h */,
-				1C53600720C6D02500A6A351 /* YZHUICropView.m */,
-			);
-			path = YZHUICropView;
 			sourceTree = "<group>";
 		};
 		1C53600920C6D70D00A6A351 /* Base */ = {
@@ -298,7 +285,6 @@
 				1C53601320C6D70D00A6A351 /* UIView+UIGestureRecognizer.m in Sources */,
 				1C535FF820C53E2200A6A351 /* NSPaintModel.m in Sources */,
 				1C53601220C6D70D00A6A351 /* UIImage+TintColor.m in Sources */,
-				1C53600820C6D02500A6A351 /* YZHUICropView.m in Sources */,
 				1C535FF720C53E2200A6A351 /* GLPaintingView.m in Sources */,
 				1C53601120C6D70D00A6A351 /* UIGestureRecognizer+YZHState.m in Sources */,
 			);
