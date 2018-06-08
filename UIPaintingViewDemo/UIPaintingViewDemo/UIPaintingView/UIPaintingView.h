@@ -30,16 +30,23 @@
 //播放速率，默认为1.0
 @property (nonatomic, assign) CGFloat playRatio;
 
+//在进行render的时候会将touchPaintEnabled设置为NO,结束的时候会还原touchPaintEnabled的值
 -(void)renderWithPoint:(NSPaintPoint*)paintPoint;
 -(void)renderWithStroke:(NSPaintStroke*)stroke;
 
+//在进行播放的时候会将touchPaintEnabled设置为NO，在结束或停止播放的时候还原
 -(void)playBack:(BOOL)fromStart;
 
 -(void)stopPlay;
 
+//在进行undo的时候会将touchPaintEnabled设置为NO,结束的时候会还原touchPaintEnabled的值
 -(void)undo;
 
+//在进行redo的时候会将touchPaintEnabled设置为NO,结束的时候会还原touchPaintEnabled的值
 -(void)redo;
+
+//在进行erase的时候会将touchPaintEnabled设置为NO,结束的时候会还原touchPaintEnabled的值
+-(void)erase;
 
 //删除绘画，连数据也一起删除
 -(void)deletePaint;

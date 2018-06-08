@@ -329,10 +329,6 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 @property (nonatomic, strong) NSMutableArray<NSNumber*> *strokeIds;
 
-//-(NSUInteger)saveWithPaintStroke:(NSPaintStroke*)paintStroke;
-//-(NSUInteger)deleteWithPaintStroke:(NSPaintStroke*)paintStroke;
-
-
 -(void)save;
 
 -(void)deleteFromFile;
@@ -340,6 +336,11 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 @end
 
 @implementation NSPaintEvent
+
++(NSString*)_saveKey:(NSUInteger)eventId
+{
+    return NEW_STRING_WITH_FORMAT(@"event/%ld", eventId);
+}
 
 -(instancetype)init
 {
@@ -379,7 +380,63 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return [self.strokeIds copy];
 }
 
--(NSUInteger)saveWithPaintStroke:(NSPaintStroke*)paintStroke
+-(BOOL)_haveInForStrokeId:(NSUInteger)strokeId
+{
+    __block BOOL have = NO;
+    [self.strokeIds enumerateObjectsUsingBlock:^(NSNumber * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([obj unsignedIntegerValue] == strokeId) {
+            have = YES;
+            *stop = YES;
+        }
+    }];
+    return have;
+}
+
+-(NSUInteger)_firstOrLastStrokeId:(BOOL)isFirst
+{
+    if (!IS_AVAILABLE_NSSET_OBJ(self.strokeIds)) {
+        return 0;
+    }
+    if (isFirst) {
+        return [[self.strokeIds firstObject] unsignedIntegerValue];
+    }
+    else {
+        return [[self.strokeIds lastObject] unsignedIntegerValue];
+    }
+}
+
+-(NSUInteger)_getStrokeIdForCurrentStrokeId:(NSUInteger)strokeId isNext:(BOOL)isNext
+{
+    __block BOOL haveFind = NO;
+    __block NSUInteger findIdx = 0;
+    [self.strokeIds enumerateObjectsUsingBlock:^(NSNumber * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([obj unsignedIntegerValue] == strokeId) {
+            findIdx = idx;
+            haveFind = YES;
+            *stop = YES;
+        }
+    }];
+    if (haveFind == NO) {
+        return 0;
+    }
+    NSUInteger retStrokeId = 0;
+    if (isNext) {
+        NSUInteger newIdx = findIdx + 1;
+        if (newIdx >= self.strokeIds.count) {
+            return 0;
+        }
+        retStrokeId = [self.strokeIds[newIdx] unsignedIntegerValue];
+    }
+    else {
+        if (findIdx <= 0) {
+            return 0;
+        }
+        retStrokeId = [self.strokeIds[findIdx-1] unsignedIntegerValue];
+    }
+    return retStrokeId;
+}
+
+-(NSUInteger)addPaintStroke:(NSPaintStroke*)paintStroke
 {
     if (paintStroke) {
         if (paintStroke.eventId != self.eventId) {
@@ -415,7 +472,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return paintStroke.strokeId;
 }
 
--(NSUInteger)deleteWithPaintStroke:(NSPaintStroke*)paintStroke
+-(NSUInteger)deletePaintStroke:(NSPaintStroke*)paintStroke
 {
     if (paintStroke) {
         NSInteger strokeId = paintStroke.strokeId;
@@ -430,22 +487,74 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return paintStroke.strokeId;
 }
 
-+(NSString*)_saveKey:(NSUInteger)eventId
+//第一笔
+-(NSPaintStroke*)firstPaintStroke
 {
-    
-    return NEW_STRING_WITH_FORMAT(@"event/%ld", eventId);
+    if (!IS_AVAILABLE_NSSET_OBJ(self.strokeIds)) {
+        return nil;
+    }
+    NSUInteger strokeId = [[self.strokeIds firstObject] unsignedIntegerValue];
+    return [self paintStrokeForStrokeId:strokeId];
 }
 
--(BOOL)_haveInForStrokeId:(NSUInteger)strokeId
+//最后一笔
+-(NSPaintStroke*)lastPaintStroke
 {
-    __block BOOL have = NO;
-    [self.strokeIds enumerateObjectsUsingBlock:^(NSNumber * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        if ([obj unsignedIntegerValue] == strokeId) {
-            have = YES;
-            *stop = YES;
-        }
-    }];
-    return have;
+    if (!IS_AVAILABLE_NSSET_OBJ(self.strokeIds)) {
+        return nil;
+    }
+    NSUInteger strokeId = [[self.strokeIds lastObject] unsignedIntegerValue];
+    return [self paintStrokeForStrokeId:strokeId];
+}
+
+//从当前cache的event中获取strokeId的NSPaintStroke的对象
+-(NSPaintStroke*)paintStrokeForStrokeId:(NSUInteger)strokeId
+{
+    if (strokeId == 0) {
+        return nil;
+    }
+    NSPaintStroke *stroke = [NSPaintStroke loadWithEventId:self.eventId strokeId:strokeId];
+    return stroke;
+}
+
+//从当前的strokeId获取下一个paintStroke
+-(NSPaintStroke*)nextPaintStrokeForStrokeId:(NSUInteger)strokeId
+{
+    NSUInteger newStrokeId = [self _getStrokeIdForCurrentStrokeId:strokeId isNext:YES];
+    return [self paintStrokeForStrokeId:newStrokeId];
+}
+
+//从当前的strokeId获取上一个paintStroke
+-(NSPaintStroke*)prevPaintStrokeForStrokeId:(NSUInteger)strokeId
+{
+    NSUInteger newStrokeId = [self _getStrokeIdForCurrentStrokeId:strokeId isNext:NO];
+    return [self paintStrokeForStrokeId:newStrokeId];
+}
+
+//是否是第一笔
+-(BOOL)isFirstPaintStroke:(NSPaintStroke*)stroke
+{
+    if (!IS_AVAILABLE_NSSET_OBJ(self.strokeIds)) {
+        return NO;
+    }
+    NSUInteger strokeId = [[self.strokeIds firstObject] unsignedIntegerValue];
+    if (stroke.strokeId == strokeId) {
+        return YES;
+    }
+    return NO;
+}
+
+//是否是最后一笔
+-(BOOL)isLastPaintStroke:(NSPaintStroke*)stroke
+{
+    if (!IS_AVAILABLE_NSSET_OBJ(self.strokeIds)) {
+        return NO;
+    }
+    NSUInteger strokeId = [[self.strokeIds lastObject] unsignedIntegerValue];
+    if (stroke.strokeId == strokeId) {
+        return YES;
+    }
+    return NO;
 }
 
 -(void)save
@@ -473,11 +582,6 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return obj;
 }
 
--(NSTimeInterval)getEventTimeInterval
-{
-    return [self _getEventTimeInterval:NSTimeActionTypeTotal strokeTimeInterval:-1 findStroke:NULL];
-}
-
 /*
  *这个接口有如下功能
  *type取如下值
@@ -497,7 +601,8 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     for (NSNumber *obj in self.strokeIds) {
         NSUInteger strokeId = [obj unsignedIntegerValue];
         
-        NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeForStrokeId:strokeId];
+//        NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeForStrokeId:strokeId];
+        NSPaintStroke *stroke = [self paintStrokeForStrokeId:strokeId];
         
         prevTotal = totalTimeInterval;
         totalTimeInterval += [stroke paintTimeInterval];
@@ -510,7 +615,8 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
             }
         }
         
-        NSPaintStroke *nextStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeForStrokeId:stroke.strokeId];
+//        NSPaintStroke *nextStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeForStrokeId:stroke.strokeId];
+        NSPaintStroke *nextStroke = [self nextPaintStrokeForStrokeId:stroke.strokeId];
         if (nextStroke) {
             NSTimeInterval freeDiff = [nextStroke startTimeInterval] - [stroke endTimeInterval];
             if (freeDiff > [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval) {
@@ -538,6 +644,11 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
         *findStroke = findObj;
     }
     return totalTimeInterval;
+}
+
+-(NSTimeInterval)getEventTimeInterval
+{
+    return [self _getEventTimeInterval:NSTimeActionTypeTotal strokeTimeInterval:-1 findStroke:NULL];
 }
 
 //获取落笔播放时间
@@ -578,7 +689,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return start + currentDiff;
 }
 
--(BOOL)shouldSave
+-(BOOL)canSave
 {
     return IS_AVAILABLE_NSSET_OBJ(self.strokeIds);
 }
@@ -586,7 +697,6 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 +(NSString*)getEventSnapshotImagePath
 {
     NSString *path= [Utils applicationStoreInfoDirectory:TYPE_STR(eventImg)];
-//    [Utils checkFileExistsAtPath:path];
     return path;
 }
 
@@ -608,16 +718,14 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
  *回放时需要用到，存储上一次绘制的线
  ***********************************************************************/
 
-//static void *key = @"2";
-
 @implementation NSPaintEvent (PlayBack)
 
--(void)setLastPaintStroke:(NSPaintStroke *)lastPaintStroke
+-(void)setLastRenderPaintStroke:(NSPaintStroke *)lastRenderPaintStroke
 {
-    objc_setAssociatedObject(self, @selector(lastPaintStroke), lastPaintStroke, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(self, @selector(lastRenderPaintStroke), lastRenderPaintStroke, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
--(NSPaintStroke*)lastPaintStroke
+-(NSPaintStroke*)lastRenderPaintStroke
 {
     return objc_getAssociatedObject(self, _cmd);
 }
@@ -680,17 +788,12 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
 
 -(void)_loadSelfData
 {
-//    NSNumber *time = (NSNumber*)[Utils loadObjectFrom:[[self class] _saveKey]];
-//    self.strokesMaxFreeTimeInterval = [time doubleValue];
-    
     self.pointsMaxTimeInterval = [[NSUserDefaults standardUserDefaults] doubleForKey:TYPE_STR(pointsMaxTimeInterval)];
     self.strokesMaxFreeTimeInterval = [[NSUserDefaults standardUserDefaults] doubleForKey:TYPE_STR(strokesMaxFreeTimeInterval)];
 }
 
 -(void)_saveSelfData
 {
-//    [Utils saveObject:@(self.strokesMaxFreeTimeInterval) to:[[self class] _saveKey]];
-    
     [[NSUserDefaults standardUserDefaults] setDouble:self.pointsMaxTimeInterval forKey:TYPE_STR(strokesMaxFreeTimeInterval)];
     [[NSUserDefaults standardUserDefaults] setDouble:self.strokesMaxFreeTimeInterval forKey:TYPE_STR(strokesMaxFreeTimeInterval)];
     [[NSUserDefaults standardUserDefaults] synchronize];
@@ -818,7 +921,7 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
     self.cacheEvent = nil;
 }
 
--(NSUInteger)addPaintStrokeIntoCurrentCache:(NSPaintStroke*)paintStroke
+-(NSUInteger)addPaintStrokeInCurrentCacheEvent:(NSPaintStroke*)paintStroke
 {
     if (!paintStroke) {
         return 0;
@@ -826,15 +929,14 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
     if (self.cacheEvent.eventId != paintStroke.eventId) {
         return 0;
     }
-    NSUInteger strokeId = [self.cacheEvent saveWithPaintStroke:paintStroke];
+    NSUInteger strokeId = [self.cacheEvent addPaintStroke:paintStroke];
     if (strokeId > 0) {
         [self.eventMemoryCache setObject:paintStroke forKey:@(paintStroke.strokeId)];
     }
-//    NSPaintStroke *stroke = [self.eventMemoryCache objectForKey:@(paintStroke.strokeId)];
     return strokeId;
 }
 
--(NSUInteger)deletePaintStroke:(NSPaintStroke*)paintStroke
+-(NSUInteger)deletePaintStrokeInCurrentCacheEvent:(NSPaintStroke*)paintStroke
 {
     if (!paintStroke) {
         return 0;
@@ -842,41 +944,21 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
     if (self.cacheEvent.eventId != paintStroke.eventId) {
         return 0;
     }
-    NSUInteger strokeId = [self.cacheEvent deleteWithPaintStroke:paintStroke];
+    NSUInteger strokeId = [self.cacheEvent deletePaintStroke:paintStroke];
     if (strokeId > 0) {
         [self.eventMemoryCache removeObjectForKey:@(paintStroke.strokeId)];
     }
     return strokeId;
 }
 
--(NSPaintStroke*)firstPaintStroke
-{
-    if (!IS_AVAILABLE_NSSET_OBJ(self.cacheEvent.strokeIds)) {
-        return nil;
-    }
-    NSUInteger strokeId = [[self.cacheEvent.strokeIds firstObject] unsignedIntegerValue];
-    return [self paintStrokeForStrokeId:strokeId];
-}
-
-
--(NSPaintStroke*)lastPaintStroke
-{
-    if (!IS_AVAILABLE_NSSET_OBJ(self.cacheEvent.strokeIds)) {
-        return nil;
-    }
-    NSUInteger strokeId = [[self.cacheEvent.strokeIds lastObject] unsignedIntegerValue];
-    return [self paintStrokeForStrokeId:strokeId];
-}
-
-
--(NSPaintStroke*)paintStrokeForStrokeId:(NSUInteger)strokeId
+-(NSPaintStroke*)paintStrokeInCurrentCacheEventForStrokeId:(NSUInteger)strokeId
 {
     if (strokeId == 0) {
         return nil;
     }
     NSPaintStroke *stroke = [self.eventMemoryCache objectForKey:@(strokeId)];
     if (stroke == nil) {
-        stroke = [NSPaintStroke loadWithEventId:self.cacheEvent.eventId strokeId:strokeId];
+        stroke = [self.cacheEvent paintStrokeForStrokeId:strokeId];
         if (stroke) {
             [self.eventMemoryCache setObject:stroke forKey:@(stroke.strokeId)];
         }
@@ -884,76 +966,44 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
     return stroke;
 }
 
--(NSUInteger)_getStrokeIdForCurrentStrokeId:(NSUInteger)strokeId isNext:(BOOL)isNext
-{
-    __block BOOL haveFind = NO;
-    __block NSUInteger findIdx = 0;
-    [self.cacheEvent.strokeIds enumerateObjectsUsingBlock:^(NSNumber * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        if ([obj unsignedIntegerValue] == strokeId) {
-            findIdx = idx;
-            haveFind = YES;
-            *stop = YES;
-        }
-    }];
-    if (haveFind == NO) {
-        return 0;
-    }
-    NSUInteger retStrokeId = 0;
-    if (isNext) {
-        NSUInteger newIdx = findIdx + 1;
-        if (newIdx >= self.cacheEvent.strokeIds.count) {
-            return 0;
-        }
-        retStrokeId = [self.cacheEvent.strokeIds[newIdx] unsignedIntegerValue];
-    }
-    else {
-        if (findIdx == 0) {
-            return 0;
-        }
-        retStrokeId = [self.cacheEvent.strokeIds[findIdx-1] unsignedIntegerValue];
-    }
-    return retStrokeId;
-}
-
 //从当前的strokeId获取下一个paintStroke
--(NSPaintStroke*)nextPaintStrokeForStrokeId:(NSUInteger)strokeId
+-(NSPaintStroke*)nextPaintStrokeInCurrentCacheEventForStrokeId:(NSUInteger)strokeId
 {
-    NSUInteger newStrokeId = [self _getStrokeIdForCurrentStrokeId:strokeId isNext:YES];
-    return [self paintStrokeForStrokeId:newStrokeId];
+    NSUInteger nextStrokeId = [self.cacheEvent _getStrokeIdForCurrentStrokeId:strokeId isNext:YES];
+    return [self paintStrokeInCurrentCacheEventForStrokeId:nextStrokeId];
 }
 
 //从当前的strokeId获取上一个paintStroke
--(NSPaintStroke*)prevPaintStrokeForStrokeId:(NSUInteger)strokeId
+-(NSPaintStroke*)prevPaintStrokeInCurrentCacheEventForStrokeId:(NSUInteger)strokeId
 {
-    NSUInteger newStrokeId = [self _getStrokeIdForCurrentStrokeId:strokeId isNext:NO];
-    return [self paintStrokeForStrokeId:newStrokeId];
+    NSUInteger prevStrokeId = [self.cacheEvent _getStrokeIdForCurrentStrokeId:strokeId isNext:NO];
+    return [self paintStrokeInCurrentCacheEventForStrokeId:prevStrokeId];
+}
+
+-(NSPaintStroke*)firstStrokeInCurrentCacheEvent
+{
+    NSUInteger firstStrokeId = [self.cacheEvent _firstOrLastStrokeId:YES];
+    return [self paintStrokeInCurrentCacheEventForStrokeId:firstStrokeId];
 }
 
 
-//是否是第一笔
--(BOOL)isFirstPaintStroke:(NSPaintStroke*)stroke
+-(NSPaintStroke*)lastStrokeInCurrentCacheEvent
 {
-    if (!IS_AVAILABLE_NSSET_OBJ(self.cacheEvent.strokeIds)) {
-        return NO;
-    }
-    NSUInteger strokeId = [[self.cacheEvent.strokeIds firstObject] unsignedIntegerValue];
-    if (stroke.strokeId == strokeId) {
-        return YES;
-    }
-    return NO;
+    NSUInteger lastStrokeId = [self.cacheEvent _firstOrLastStrokeId:YES];
+    return [self paintStrokeInCurrentCacheEventForStrokeId:lastStrokeId];
+}
+
+//是否是第一笔
+-(BOOL)isFirstPaintStrokeInCurrentCacheEvent:(NSPaintStroke*)stroke
+{
+    return [self.cacheEvent isFirstPaintStroke:stroke];
+
 }
 
 //是否是最后一笔
--(BOOL)isLastPaintStroke:(NSPaintStroke*)stroke
+-(BOOL)isLastPaintStrokeInCurrentCacheEvent:(NSPaintStroke*)stroke
 {
-    if (!IS_AVAILABLE_NSSET_OBJ(self.cacheEvent.strokeIds)) {
-        return NO;
-    }
-    NSUInteger strokeId = [[self.cacheEvent.strokeIds lastObject] unsignedIntegerValue];
-    if (stroke.strokeId == strokeId) {
-        return YES;
-    }
-    return NO;
+    return [self.cacheEvent isLastPaintStroke:stroke];
 }
 
 -(NSPaintStroke*)getStrokeForTimeInterval:(NSTimeInterval)timeInterval paintPointIndex:(NSUInteger*)paintPointIndex
@@ -1008,7 +1058,7 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
     return _paintDataQueue_s;
 }
 
--(void)_addDataExecute:(DataExecuteBlock)executeBlock inQueue:(dispatch_queue_t)queue completionBlock:(DataExecuteCompletionBlock)completionBlock
+-(void)_addDataExecute:(NSPaintDataExecuteBlock)executeBlock inQueue:(dispatch_queue_t)queue completionBlock:(NSPaintDataExecuteCompletionBlock)completionBlock
 {
     dispatch_async(queue, ^{
         id retObj = nil;
@@ -1023,7 +1073,7 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
     });
 }
 
--(void)addDataExecuteBlock:(DataExecuteBlock)executeBlock completionBlock:(DataExecuteCompletionBlock)completionBlock
+-(void)addDataExecuteBlock:(NSPaintDataExecuteBlock)executeBlock completionBlock:(NSPaintDataExecuteCompletionBlock)completionBlock;
 {
     [self _addDataExecute:executeBlock inQueue:[[self class] _dataExecuteQueue] completionBlock:completionBlock];
 }

@@ -8,11 +8,15 @@
 
 #import "ViewController.h"
 #import "UIPaintingView.h"
+#import "YZHUICropView.h"
 
 @interface ViewController ()<UIPaintViewDelegate>
 
 /** 注释 */
 @property (nonatomic, strong) UIPaintingView *paintingView;
+
+/** 注释 */
+@property (nonatomic, strong) YZHUICropView *cropView;
 
 @end
 
@@ -49,6 +53,8 @@
             break;
         }
         case 3: {
+//            CGRect rect = [self.cropView cropRectForType:NSCropRectTypeIn];
+//            [self.paintingView eraseInFrame:rect];
             [self.paintingView erase];
             break;
         }
@@ -79,7 +85,7 @@
 {
     CGFloat functionBtnHeight = 40;
     
-    self.paintingView = [[UIPaintingView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - functionBtnHeight)];
+    self.paintingView = [[UIPaintingView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 3 * functionBtnHeight)];
     self.paintingView.backgroundColor = LIGHT_GRAY_COLOR;
     self.paintingView.brushWidth = 2.0;
     self.paintingView.brushColor = RED_COLOR;
@@ -93,7 +99,7 @@
     CGFloat w = (SCREEN_WIDTH - (cnt + 1) * space)/cnt;
     
     CGFloat x = space;
-    CGFloat y = CGRectGetMaxY(self.paintingView.frame);
+    CGFloat y = CGRectGetMaxY(self.paintingView.frame) + 40;
     UIButton *btn = [self _createButton:@"Redo" frame:CGRectMake(x, y, w, functionBtnHeight) tag:1];
     
     x = CGRectGetMaxX(btn.frame) + space;
@@ -109,6 +115,7 @@
     btn = [self _createButton:@"play" frame:CGRectMake(x, y, w, functionBtnHeight) tag:5];
     
     
+//    self.cropView = [[YZHUICropView alloc] initWithCropOverView:self.paintingView];
 }
 
 #pragma  mark 
@@ -127,7 +134,7 @@
     newStroke.strokeColor = self.paintingView.brushColor;
     [newStroke addPaintPoint:paintPoint];
     
-    self.paintingView.paintEvent.lastPaintStroke = newStroke;
+    self.paintingView.paintEvent.lastRenderPaintStroke = newStroke;
     
     return YES;
 }
@@ -140,7 +147,7 @@
     NSTimeInterval timeInterval = [[NSDate date] timeIntervalSince1970];
     NSPaintPoint *paintPoint = [[NSPaintPoint alloc] initWithPoint:currLoc pressure:0 status:NSPaintStatusMove timeInterval:timeInterval];
     
-    [self.paintingView.paintEvent.lastPaintStroke addPaintPoint:paintPoint];
+    [self.paintingView.paintEvent.lastRenderPaintStroke addPaintPoint:paintPoint];
     
     return YES;
 }
@@ -152,16 +159,16 @@
     
     NSLog(@"end.loc=%@",NSStringFromCGPoint(currLoc));
     
-    NSPaintPoint *last = [[self.paintingView.paintEvent.lastPaintStroke paintPoints] lastObject];
+    NSPaintPoint *last = [[self.paintingView.paintEvent.lastRenderPaintStroke paintPoints] lastObject];
     if (CGPointEqualToPoint(prevLoc, last.point)) {
         
 //        NSPaintPoint *paintPoint = [[NSPaintPoint alloc] initWithPoint:currLoc status:NSPaintStatusEnd lineWidth:self.paintingView.brushWidth];
         NSTimeInterval timeInterval = [[NSDate date] timeIntervalSince1970];
         NSPaintPoint *paintPoint = [[NSPaintPoint alloc] initWithPoint:currLoc pressure:0 status:NSPaintStatusEnd timeInterval:timeInterval];
         
-        [self.paintingView.paintEvent.lastPaintStroke addPaintPoint:paintPoint];
+        [self.paintingView.paintEvent.lastRenderPaintStroke addPaintPoint:paintPoint];
     }
-    [[NSPaintManager sharePaintManager] addPaintStrokeIntoCurrentCache:self.paintingView.paintEvent.lastPaintStroke];
+    [[NSPaintManager sharePaintManager] addPaintStrokeInCurrentCacheEvent:self.paintingView.paintEvent.lastRenderPaintStroke];
     return YES;
 }
 

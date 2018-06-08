@@ -16,8 +16,8 @@ typedef NS_ENUM(NSInteger, NSPaintStatus)
 };
 
 //存储文件操作
-typedef id(^DataExecuteBlock)(void);
-typedef void(^DataExecuteCompletionBlock)(id result);
+typedef id(^NSPaintDataExecuteBlock)(void);
+typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 
 /***********************************************************************
  *GLLinePoint
@@ -111,9 +111,31 @@ typedef void(^DataExecuteCompletionBlock)(id result);
 
 -(NSArray<NSNumber*>*)paintStrokeIds;
 
-//返回paintStrokeId
--(NSUInteger)saveWithPaintStroke:(NSPaintStroke*)paintStroke;
--(NSUInteger)deleteWithPaintStroke:(NSPaintStroke*)paintStroke;
+//增加新的一笔，并进行保存，返回新的一笔StrokeId
+-(NSUInteger)addPaintStroke:(NSPaintStroke*)paintStroke;
+//删除其中的一笔，并进行保存，返回删除的笔StrokeId
+-(NSUInteger)deletePaintStroke:(NSPaintStroke*)paintStroke;
+
+//第一笔
+-(NSPaintStroke*)firstPaintStroke;
+
+//最后一笔
+-(NSPaintStroke*)lastPaintStroke;
+
+//从event中获取strokeId的NSPaintStroke的对象
+-(NSPaintStroke*)paintStrokeForStrokeId:(NSUInteger)strokeId;
+
+//从当前的strokeId获取下一个paintStroke
+-(NSPaintStroke*)nextPaintStrokeForStrokeId:(NSUInteger)strokeId;
+
+//从当前的strokeId获取上一个paintStroke
+-(NSPaintStroke*)prevPaintStrokeForStrokeId:(NSUInteger)strokeId;
+
+//是否是第一笔
+-(BOOL)isFirstPaintStroke:(NSPaintStroke*)stroke;
+
+//是否是最后一笔
+-(BOOL)isLastPaintStroke:(NSPaintStroke*)stroke;
 
 +(NSPaintEvent*)loadWithEventId:(NSUInteger)eventId;
 
@@ -124,7 +146,8 @@ typedef void(^DataExecuteCompletionBlock)(id result);
 -(NSTimeInterval)getEndPlayTimeIntervalForStroke:(NSPaintStroke*)stroke;
 //获取某一笔某一个点的播放时间
 -(NSTimeInterval)getPointPlayTimeInterForStorke:(NSPaintStroke*)stroke point:(NSPaintPoint*)paintPoint;
--(BOOL)shouldSave;
+
+-(BOOL)canSave;
 
 +(NSString*)getEventSnapshotImagePath;
 +(NSString*)getEventSnapshotImageNameForEventId:(NSUInteger)eventId;
@@ -139,7 +162,7 @@ typedef void(^DataExecuteCompletionBlock)(id result);
  ***********************************************************************/
 @interface NSPaintEvent (PlayBack)
 
-@property (nonatomic, strong) NSPaintStroke *lastPaintStroke;
+@property (nonatomic, strong) NSPaintStroke *lastRenderPaintStroke;
 
 @end
 
@@ -178,29 +201,29 @@ typedef void(^DataExecuteCompletionBlock)(id result);
 -(void)removeCurrentCacheEvent;
 
 //将一笔所有的点击加载到cache中，paintStroke中的点必须包含began,end这两个点，返回paintStrokeId
--(NSUInteger)addPaintStrokeIntoCurrentCache:(NSPaintStroke*)paintStroke;
--(NSUInteger)deletePaintStroke:(NSPaintStroke*)paintStroke;
-
-//第一笔
--(NSPaintStroke*)firstPaintStroke;
-
-//最后一笔
--(NSPaintStroke*)lastPaintStroke;
+-(NSUInteger)addPaintStrokeInCurrentCacheEvent:(NSPaintStroke*)paintStroke;
+-(NSUInteger)deletePaintStrokeInCurrentCacheEvent:(NSPaintStroke*)paintStroke;
 
 //从当前cache的event中获取strokeId的NSPaintStroke的对象
--(NSPaintStroke*)paintStrokeForStrokeId:(NSUInteger)strokeId;
+-(NSPaintStroke*)paintStrokeInCurrentCacheEventForStrokeId:(NSUInteger)strokeId;
 
 //从当前的strokeId获取下一个paintStroke
--(NSPaintStroke*)nextPaintStrokeForStrokeId:(NSUInteger)strokeId;
+-(NSPaintStroke*)nextPaintStrokeInCurrentCacheEventForStrokeId:(NSUInteger)strokeId;
 
 //从当前的strokeId获取上一个paintStroke
--(NSPaintStroke*)prevPaintStrokeForStrokeId:(NSUInteger)strokeId;
+-(NSPaintStroke*)prevPaintStrokeInCurrentCacheEventForStrokeId:(NSUInteger)strokeId;
+
+//第一笔
+-(NSPaintStroke*)firstStrokeInCurrentCacheEvent;
+
+//最后一笔
+-(NSPaintStroke*)lastStrokeInCurrentCacheEvent;
 
 //是否是第一笔
--(BOOL)isFirstPaintStroke:(NSPaintStroke*)stroke;
+-(BOOL)isFirstPaintStrokeInCurrentCacheEvent:(NSPaintStroke*)stroke;
 
 //是否是最后一笔
--(BOOL)isLastPaintStroke:(NSPaintStroke*)stroke;
+-(BOOL)isLastPaintStrokeInCurrentCacheEvent:(NSPaintStroke*)stroke;
 
 //根据相对第一笔开始时的时长获取到此时间是在哪一笔
 -(NSPaintStroke*)getStrokeForTimeInterval:(NSTimeInterval)timeInterval paintPointIndex:(NSUInteger*)paintPointIndex;
@@ -220,6 +243,6 @@ typedef void(^DataExecuteCompletionBlock)(id result);
 //获取所有的event的Id
 -(NSArray<NSNumber*>*)getAllEventId;
 
--(void)addDataExecuteBlock:(DataExecuteBlock)executeBlock completionBlock:(DataExecuteCompletionBlock)completionBlock;
+-(void)addDataExecuteBlock:(NSPaintDataExecuteBlock)executeBlock completionBlock:(NSPaintDataExecuteCompletionBlock)completionBlock;
 
 @end

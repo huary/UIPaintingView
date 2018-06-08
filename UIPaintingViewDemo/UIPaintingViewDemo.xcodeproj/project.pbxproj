@@ -22,6 +22,11 @@
 		1C535FFD20C53E2200A6A351 /* fileUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C535FF420C53E2200A6A351 /* fileUtil.m */; };
 		1C535FFE20C53E2200A6A351 /* shaderUtil.c in Sources */ = {isa = PBXBuildFile; fileRef = 1C535FF520C53E2200A6A351 /* shaderUtil.c */; };
 		1C53600420C54DD600A6A351 /* Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C53600320C54DD600A6A351 /* Utils.m */; };
+		1C53600820C6D02500A6A351 /* YZHUICropView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C53600720C6D02500A6A351 /* YZHUICropView.m */; };
+		1C53601120C6D70D00A6A351 /* UIGestureRecognizer+YZHState.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C53600C20C6D70D00A6A351 /* UIGestureRecognizer+YZHState.m */; };
+		1C53601220C6D70D00A6A351 /* UIImage+TintColor.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C53600E20C6D70D00A6A351 /* UIImage+TintColor.m */; };
+		1C53601320C6D70D00A6A351 /* UIView+UIGestureRecognizer.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C53601020C6D70D00A6A351 /* UIView+UIGestureRecognizer.m */; };
+		1CE1C4EE20C78A7600B0E2DA /* NSWeakProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 1CE1C4ED20C78A7600B0E2DA /* NSWeakProxy.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -53,6 +58,16 @@
 		1C53600020C5403400A6A351 /* Macro.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Macro.h; sourceTree = "<group>"; };
 		1C53600220C54DD600A6A351 /* Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Utils.h; sourceTree = "<group>"; };
 		1C53600320C54DD600A6A351 /* Utils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Utils.m; sourceTree = "<group>"; };
+		1C53600620C6D02500A6A351 /* YZHUICropView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = YZHUICropView.h; sourceTree = "<group>"; };
+		1C53600720C6D02500A6A351 /* YZHUICropView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = YZHUICropView.m; sourceTree = "<group>"; };
+		1C53600B20C6D70D00A6A351 /* UIGestureRecognizer+YZHState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIGestureRecognizer+YZHState.h"; sourceTree = "<group>"; };
+		1C53600C20C6D70D00A6A351 /* UIGestureRecognizer+YZHState.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIGestureRecognizer+YZHState.m"; sourceTree = "<group>"; };
+		1C53600D20C6D70D00A6A351 /* UIImage+TintColor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImage+TintColor.h"; sourceTree = "<group>"; };
+		1C53600E20C6D70D00A6A351 /* UIImage+TintColor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+TintColor.m"; sourceTree = "<group>"; };
+		1C53600F20C6D70D00A6A351 /* UIView+UIGestureRecognizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIView+UIGestureRecognizer.h"; sourceTree = "<group>"; };
+		1C53601020C6D70D00A6A351 /* UIView+UIGestureRecognizer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIView+UIGestureRecognizer.m"; sourceTree = "<group>"; };
+		1CE1C4EC20C78A7600B0E2DA /* NSWeakProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSWeakProxy.h; sourceTree = "<group>"; };
+		1CE1C4ED20C78A7600B0E2DA /* NSWeakProxy.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NSWeakProxy.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -85,6 +100,8 @@
 		1C108A6220C52E690036EFF5 /* UIPaintingViewDemo */ = {
 			isa = PBXGroup;
 			children = (
+				1C53600920C6D70D00A6A351 /* Base */,
+				1C53600520C6D02500A6A351 /* YZHUICropView */,
 				1C53600120C54DD600A6A351 /* Utils */,
 				1C53600020C5403400A6A351 /* Macro.h */,
 				1C535FFF20C5403400A6A351 /* PrefixHeader.pch */,
@@ -154,6 +171,46 @@
 				1C53600320C54DD600A6A351 /* Utils.m */,
 			);
 			path = Utils;
+			sourceTree = "<group>";
+		};
+		1C53600520C6D02500A6A351 /* YZHUICropView */ = {
+			isa = PBXGroup;
+			children = (
+				1C53600620C6D02500A6A351 /* YZHUICropView.h */,
+				1C53600720C6D02500A6A351 /* YZHUICropView.m */,
+			);
+			path = YZHUICropView;
+			sourceTree = "<group>";
+		};
+		1C53600920C6D70D00A6A351 /* Base */ = {
+			isa = PBXGroup;
+			children = (
+				1CE1C4EB20C78A5800B0E2DA /* NSFoundation */,
+				1C53600A20C6D70D00A6A351 /* UIKit */,
+			);
+			path = Base;
+			sourceTree = "<group>";
+		};
+		1C53600A20C6D70D00A6A351 /* UIKit */ = {
+			isa = PBXGroup;
+			children = (
+				1C53600B20C6D70D00A6A351 /* UIGestureRecognizer+YZHState.h */,
+				1C53600C20C6D70D00A6A351 /* UIGestureRecognizer+YZHState.m */,
+				1C53600D20C6D70D00A6A351 /* UIImage+TintColor.h */,
+				1C53600E20C6D70D00A6A351 /* UIImage+TintColor.m */,
+				1C53600F20C6D70D00A6A351 /* UIView+UIGestureRecognizer.h */,
+				1C53601020C6D70D00A6A351 /* UIView+UIGestureRecognizer.m */,
+			);
+			path = UIKit;
+			sourceTree = "<group>";
+		};
+		1CE1C4EB20C78A5800B0E2DA /* NSFoundation */ = {
+			isa = PBXGroup;
+			children = (
+				1CE1C4EC20C78A7600B0E2DA /* NSWeakProxy.h */,
+				1CE1C4ED20C78A7600B0E2DA /* NSWeakProxy.m */,
+			);
+			path = NSFoundation;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -231,14 +288,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				1C53600420C54DD600A6A351 /* Utils.m in Sources */,
+				1CE1C4EE20C78A7600B0E2DA /* NSWeakProxy.m in Sources */,
 				1C108A6820C52E690036EFF5 /* ViewController.m in Sources */,
 				1C535FFD20C53E2200A6A351 /* fileUtil.m in Sources */,
 				1C535FFE20C53E2200A6A351 /* shaderUtil.c in Sources */,
 				1C108A7320C52E690036EFF5 /* main.m in Sources */,
 				1C535FFC20C53E2200A6A351 /* UIPaintingView.m in Sources */,
 				1C108A6520C52E690036EFF5 /* AppDelegate.m in Sources */,
+				1C53601320C6D70D00A6A351 /* UIView+UIGestureRecognizer.m in Sources */,
 				1C535FF820C53E2200A6A351 /* NSPaintModel.m in Sources */,
+				1C53601220C6D70D00A6A351 /* UIImage+TintColor.m in Sources */,
+				1C53600820C6D02500A6A351 /* YZHUICropView.m in Sources */,
 				1C535FF720C53E2200A6A351 /* GLPaintingView.m in Sources */,
+				1C53601120C6D70D00A6A351 /* UIGestureRecognizer+YZHState.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -377,6 +439,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = UIPaintingViewDemo/PrefixHeader.pch;
 				INFOPLIST_FILE = UIPaintingViewDemo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = yuan.UIPaintingViewDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -393,6 +456,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = UIPaintingViewDemo/PrefixHeader.pch;
 				INFOPLIST_FILE = UIPaintingViewDemo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = yuan.UIPaintingViewDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -98,11 +98,22 @@ const CGLineEquation CGLineEquationZero={.A = 0, .B = 0, .C = 0};
     }
     
     if (key != nil) {
-        NSKeyedArchiver *encoder = [[NSKeyedArchiver alloc] init];
-        [encoder encodeObject:object forKey:key];
-        [encoder finishEncoding];
-        
-        return encoder.encodedData;
+        if (ON_LATER_IOS_VERSION(10.0)) {
+            NSKeyedArchiver *encoder = [[NSKeyedArchiver alloc] init];
+            [encoder encodeObject:object forKey:key];
+            [encoder finishEncoding];
+            
+            return encoder.encodedData;
+        }
+        else {
+            NSMutableData *mutData = [NSMutableData data];
+            NSKeyedArchiver *keyArchiver = [[NSKeyedArchiver alloc] initForWritingWithMutableData:mutData];
+            
+            [keyArchiver encodeObject:object forKey:key];
+            [keyArchiver finishEncoding];
+            
+            return [mutData copy];
+        }
     }
     else
     {

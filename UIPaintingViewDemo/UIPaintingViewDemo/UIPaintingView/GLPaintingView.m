@@ -527,7 +527,7 @@ typedef struct {
     }
 }
 
--(void)clearFrameBuffer
+-(void)_doClearFrameBufferAction
 {
     [EAGLContext setCurrentContext:context];
     
@@ -537,15 +537,28 @@ typedef struct {
     CGFloat red = 0.0, green = 0.0, blue = 0.0, alpha = 0.0;
     [self.backgroundColor getRed:&red green:&green blue:&blue alpha:&alpha];
     glClearColor(red, green, blue, alpha);
+}
+
+-(void)clearFrameBuffer
+{
+    [self _doClearFrameBufferAction];
     glClear(GL_COLOR_BUFFER_BIT);
+}
+
+-(void)clearFrameBufferInFrame:(CGRect)frame
+{
+    [self _doClearFrameBufferAction];
     
-//    CGFloat w = self.bounds.size.width/2;
-//    CGFloat h = self.bounds.size.height/2;
-//    glEnable(GL_SCISSOR_TEST);
-//    glScissor(0,0,w,h);
+//    CGFloat red = 0.0, green = 0.0, blue = 0.0, alpha = 0.0;
+//    [RAND_COLOR getRed:&red green:&green blue:&blue alpha:&alpha];
 //    glClearColor(red, green, blue, alpha);
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // (or whatever buffer you want to clear)
-//    glDisable(GL_SCISSOR_TEST);
+    
+    CGRect glRect = [self _convertRectToGLRect:frame];
+    
+    glScissor(glRect.origin.x,glRect.origin.y, glRect.size.width, glRect.size.height);
+    glEnable(GL_SCISSOR_TEST);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
 }
 
 -(void)presentRenderbuffer
@@ -553,6 +566,16 @@ typedef struct {
     // Display the buffer
     glBindRenderbuffer(GL_RENDERBUFFER, viewRenderbuffer);
     [context presentRenderbuffer:GL_RENDERBUFFER];
+}
+
+-(CGRect)_convertRectToGLRect:(CGRect)rect
+{
+    CGFloat scale = self.contentScaleFactor;
+    CGFloat x = rect.origin.x * scale;
+    CGFloat w = rect.size.width * scale;
+    CGFloat h = rect.size.height * scale;
+    CGFloat y = (self.renderSize.height - CGRectGetMaxY(rect)) * scale;//(self.renderSize.height - rect.origin.y);
+    return CGRectMake(x, y, w, h);
 }
 
 -(GLLinePoint*)_convertToGLPoint:(GLLinePoint*)point
@@ -593,6 +616,13 @@ typedef struct {
 -(void)erase
 {
     [self clearFrameBuffer];
+    
+    [self presentRenderbuffer];
+}
+
+-(void)eraseInFrame:(CGRect)frame
+{
+    [self clearFrameBufferInFrame:frame];
     
     [self presentRenderbuffer];
 }

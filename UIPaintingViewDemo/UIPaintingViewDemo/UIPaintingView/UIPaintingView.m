@@ -7,15 +7,24 @@
 //
 
 #import "UIPaintingView.h"
+#import <objc/runtime.h>
+#import "NSWeakProxy.h"
 
-//
-//#define MAX_STROKE_PAINT_TIME_INTERVAL (5.0)
-#define MIN_DIFF_TIME                    (0.0001)
+#define USE_TIMER                        (0)
+
 
 @interface UIPaintingView ()
 //freq should be 1 - 60;
 @property (nonatomic, assign) CGFloat displayFreq;
 @property (nonatomic, assign) BOOL isPlaying;
+
+/** name */
+@property (nonatomic, assign) BOOL playTouchPaintEnabled;
+
+#if USE_TIMER
+/** timer */
+@property (nonatomic, strong) NSTimer *playTimer;
+#endif
 
 @end
 
@@ -69,23 +78,30 @@
 
 -(void)renderWithPoint:(NSPaintPoint*)paintPoint
 {
+    BOOL touchEnable = self.touchPaintEnabled;
+    self.touchPaintEnabled = NO;
     [self _renderWithPoint:paintPoint present:YES addNewStroke:YES lineColor:nil];
+    self.touchPaintEnabled = touchEnable;
 }
 
 -(void)renderWithStroke:(NSPaintStroke*)stroke
 {
-    NSLog(@"strokeId=%ld",stroke.strokeId);
+    BOOL touchEnable = self.touchPaintEnabled;
+    self.touchPaintEnabled = NO;
+    
     [self _renderWithStroke:stroke lineColor:stroke.strokeColor];
+    
+    self.touchPaintEnabled = touchEnable;
 }
 
 -(void)_renderWithStroke:(NSPaintStroke*)stroke lineColor:(UIColor*)lineColor
 {
-    self.paintEvent.lastPaintStroke = stroke;
+    self.paintEvent.lastRenderPaintStroke = stroke;
     NSArray<NSPaintPoint*> *strokePoints  = [stroke paintPoints];
     for (NSPaintPoint *point in strokePoints) {
         [self _renderWithPoint:point present:NO addNewStroke:NO lineColor:lineColor];
     }
-    self.paintEvent.lastPaintStroke.strokeId = stroke.strokeId;
+    self.paintEvent.lastRenderPaintStroke.strokeId = stroke.strokeId;
 }
 
 -(BOOL)_shouldDisplayPoint:(NSPaintPoint*)point forPaintStroke:(NSPaintStroke*)stroke
@@ -100,38 +116,47 @@
     return NO;
 }
 
--(void)_renderWithPoint:(NSPaintPoint*)paintPoint present:(BOOL)present addNewStroke:(BOOL)addNew lineColor:(UIColor*)lineColor
+-(void)_checkLastRenderPaintStrokeWithPaintPoint:(NSPaintPoint*)paintPoint force:(BOOL)force
 {
-    
-    CGFloat lineWidth = [paintPoint getLineWidth:self.maxLineWidth];
-    if (paintPoint.status == NSPaintStatusBegan) {
-        GLLinePoint *from = [[GLLinePoint alloc] initWithPoint:paintPoint.point lineWidth:lineWidth];
-        [self renderLineFromPoint:from toPoint:from lineColor:lineColor present:present];
-        
+    if (self.paintEvent.lastRenderPaintStroke== nil || force) {
         NSPaintStroke *newStroke = [[NSPaintStroke alloc] initWithEventId:self.paintEvent.eventId];
         [newStroke addPaintPoint:paintPoint];
-        self.paintEvent.lastPaintStroke = newStroke;
-        
+        self.paintEvent.lastRenderPaintStroke = newStroke;
+    }
+}
+
+-(void)_renderWithPoint:(NSPaintPoint*)paintPoint present:(BOOL)present addNewStroke:(BOOL)addNew lineColor:(UIColor*)lineColor
+{
+    CGFloat lineWidth = [paintPoint getLineWidth:self.maxLineWidth];
+    if (paintPoint.status == NSPaintStatusBegan) {
+        [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:YES];
+
+        GLLinePoint *from = [[GLLinePoint alloc] initWithPoint:paintPoint.point lineWidth:lineWidth];
+        [self renderLineFromPoint:from toPoint:from lineColor:lineColor present:present];
     }
     else if (paintPoint.status == NSPaintStatusMove) {
-        NSPaintPoint *lastPoint = self.paintEvent.lastPaintStroke.lastPaintPoint;
+        [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:NO];
+
+        NSPaintPoint *lastPoint = self.paintEvent.lastRenderPaintStroke.lastPaintPoint;
         CGFloat lastLineWidth = [lastPoint getLineWidth:self.maxLineWidth];
         GLLinePoint *from = [[GLLinePoint alloc] initWithPoint:lastPoint.point lineWidth:lastLineWidth];
         
         GLLinePoint *to = [[GLLinePoint alloc] initWithPoint:paintPoint.point lineWidth:lineWidth];
         
         if (present) {
-            if (![self _shouldDisplayPoint:paintPoint forPaintStroke:self.paintEvent.lastPaintStroke]) {
+            if (![self _shouldDisplayPoint:paintPoint forPaintStroke:self.paintEvent.lastRenderPaintStroke]) {
                 present = NO;
             }
         }
         
         [self renderLineFromPoint:from toPoint:to lineColor:lineColor present:present];
         
-        [self.paintEvent.lastPaintStroke addPaintPoint:paintPoint];
+        [self.paintEvent.lastRenderPaintStroke addPaintPoint:paintPoint];
     }
     else {
-        NSPaintPoint *lastPoint = self.paintEvent.lastPaintStroke.lastPaintPoint;
+        [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:NO];
+        
+        NSPaintPoint *lastPoint = self.paintEvent.lastRenderPaintStroke.lastPaintPoint;
         CGFloat lastLineWidth = [lastPoint getLineWidth:self.maxLineWidth];
         GLLinePoint *from = [[GLLinePoint alloc] initWithPoint:lastPoint.point lineWidth:lastLineWidth];
         
@@ -139,14 +164,14 @@
         
         [self renderLineFromPoint:from toPoint:to lineColor:lineColor present:present];
         
-        [self.paintEvent.lastPaintStroke addPaintPoint:paintPoint];
+        [self.paintEvent.lastRenderPaintStroke addPaintPoint:paintPoint];
         if (addNew) {
-            [[NSPaintManager sharePaintManager] addPaintStrokeIntoCurrentCache:self.paintEvent.lastPaintStroke];
+            [[NSPaintManager sharePaintManager] addPaintStrokeInCurrentCacheEvent:self.paintEvent.lastRenderPaintStroke];
         }
     }
-    self.paintEvent.lastPaintStroke.lastPaintPoint = paintPoint;
+    self.paintEvent.lastRenderPaintStroke.lastPaintPoint = paintPoint;
     if (present) {
-        self.paintEvent.lastPaintStroke.lastDisplayPoint = paintPoint;
+        self.paintEvent.lastRenderPaintStroke.lastDisplayPoint = paintPoint;
     }
 }
 
@@ -157,9 +182,7 @@
     }
     return timeInterval;
 }
-/*
- *在调用前需要注意的是需要把stroke放到self.PaintEvent中的lastPaintStroke属性去
- */
+
 -(void)_playBackRenderStroke:(NSPaintStroke*)stroke
 {
     if (!self.isPlaying) {
@@ -178,9 +201,15 @@
     }
     
     NSPaintPoint *paintPoint = paintPoints[index];
+    //在开始播放的时候把touchPaintEnabled 设置为NO
+    if ([self.paintEvent isFirstPaintStroke:stroke] && index == 0) {
+        self.playTouchPaintEnabled = self.touchPaintEnabled;
+        self.touchPaintEnabled = NO;
+    }
+    
     [self _renderWithPoint:paintPoint present:YES addNewStroke:NO lineColor:nil];
     stroke.lastPaintPoint = paintPoint;
-    self.paintEvent.lastPaintStroke.strokeId = stroke.strokeId;
+    self.paintEvent.lastRenderPaintStroke.strokeId = stroke.strokeId;
 
     if (paintPoint.status == NSPaintStatusBegan) {
         if ([self.delegate respondsToSelector:@selector(paintingView:startPlayPaintStroke:)]) {
@@ -188,13 +217,18 @@
         }
     }
     else if (paintPoint.status == NSPaintStatusMove) {
-        if (self.paintEvent.lastPaintStroke.lastDisplayPoint == paintPoint) {
+        if (self.paintEvent.lastRenderPaintStroke.lastDisplayPoint == paintPoint) {
             if ([self.delegate respondsToSelector:@selector(paintingView:playingPintStroke:paintPoint:)]) {
-                [self.delegate paintingView:self playingPintStroke:self.paintEvent.lastPaintStroke paintPoint:paintPoint];
+                [self.delegate paintingView:self playingPintStroke:self.paintEvent.lastRenderPaintStroke paintPoint:paintPoint];
             }
         }
     }
     else if (paintPoint.status == NSPaintStatusEnd) {
+        //在开始播放的时候把touchPaintEnabled还原
+        if ([self.paintEvent isLastPaintStroke:stroke]) {
+            self.touchPaintEnabled = self.playTouchPaintEnabled;
+        }
+        
         if ([self.delegate respondsToSelector:@selector(paintingView:endPlayPaintStroke:)]) {
             [self.delegate paintingView:self endPlayPaintStroke:stroke];
         }
@@ -207,21 +241,17 @@
             diff = [NSPaintManager sharePaintManager].pointsMaxTimeInterval;
         }
         diff = [self _getPlayDiffTimeInterval:diff];
-        if (diff <= MIN_DIFF_TIME) {
-//            dispatch_async_in_main_queue(^{
-//                [self _playBackRenderStroke:stroke];
-//            });
-            [self performSelector:@selector(_playBackRenderStroke:) withObject:stroke afterDelay:0];
+        if (diff <= CGFLOAT_MIN) {
+            diff = 0;
         }
-        else {
-//            dispatch_after_in_main_queue(diff,^{
-//                [self _playBackRenderStroke:stroke];
-//            });
-            [self performSelector:@selector(_playBackRenderStroke:) withObject:stroke afterDelay:diff];
-        }
+#if USE_TIMER
+        [self _startPlayerTimer:diff selector:@selector(_playBackRenderStroke:) object:stroke];
+#else
+        [self performSelector:@selector(_playBackRenderStroke:) withObject:stroke afterDelay:diff];
+#endif
     }
     else {
-        NSPaintStroke *nextStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeForStrokeId:stroke.strokeId];
+        NSPaintStroke *nextStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeInCurrentCacheEventForStrokeId:stroke.strokeId];
         if (nextStroke == nil) {
             self.isPlaying = NO;
             return;
@@ -231,44 +261,33 @@
             diff = [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval;
         }
         diff = [self _getPlayDiffTimeInterval:diff];
-        if (diff <= MIN_DIFF_TIME) {
-//            dispatch_async_in_main_queue(^{
-//                [self _playBackWithPaintEvent:self.paintEvent isBegin:NO];
-//            });
-            [self performSelector:@selector(_playBackWithPaintEvent:) withObject:self.paintEvent afterDelay:0];
+        
+        if (diff <= CGFLOAT_MIN) {
+            diff = 0;
         }
-        else {
-//            dispatch_after_in_main_queue(diff, ^{
-//                [self _playBackWithPaintEvent:self.paintEvent isBegin:NO];
-//            });
-            [self performSelector:@selector(_playBackWithPaintEvent:) withObject:self.paintEvent afterDelay:0];
-        }
+#if USE_TIMER
+        [self _startPlayerTimer:diff selector:@selector(_playBackWithPaintEvent:) object:self.paintEvent];
+#else
+        [self performSelector:@selector(_playBackWithPaintEvent:) withObject:self.paintEvent afterDelay:diff];
+#endif
     }
 }
 
 -(void)_playBackWithPaintEvent:(NSPaintEvent*)paintEvent
 {
-//    if (isBegin) {
-//        [self erase];
-//        self.isPlaying = YES;
-//    }
-//    else {
-//        if (!self.isPlaying) {
-//            return;
-//        }
-//    }
     if (!self.isPlaying) {
         return;
     }
     if (paintEvent == nil || !IS_AVAILABLE_NSSET_OBJ([paintEvent paintStrokeIds])) {
         return;
     }
+    
     NSPaintStroke *paintStroke = nil;
-    if (paintEvent.lastPaintStroke) {
-        paintStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeForStrokeId:paintEvent.lastPaintStroke.strokeId];
+    if (paintEvent.lastRenderPaintStroke) {
+        paintStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeInCurrentCacheEventForStrokeId:paintEvent.lastRenderPaintStroke.strokeId];
     }
     else {
-        paintStroke = [[NSPaintManager sharePaintManager] firstPaintStroke];
+        paintStroke = [[NSPaintManager sharePaintManager] firstStrokeInCurrentCacheEvent];
     }
     if (paintStroke == nil) {
         self.isPlaying = NO;
@@ -278,36 +297,46 @@
     [self _playBackRenderStroke:paintStroke];
 }
 
+-(void)_beginPlayBackWithPaintEvent:(NSPaintEvent*)paintEvent
+{
+    self.isPlaying = YES;
+    [self _playBackWithPaintEvent:paintEvent];
+}
+
 -(void)_cancelPrevPlay
 {
     self.isPlaying = NO;
-    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_playBackRenderStroke:) object:self.paintEvent.lastPaintStroke];
-    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector((_playBackWithPaintEvent:)) object:self.paintEvent];
+#if USE_TIMER
+    [self _invalidatePlayerTimer];
+#else
+    [NSObject cancelPreviousPerformRequestsWithTarget:self];
+#endif
 }
+
 
 -(void)playBack:(BOOL)fromStart
 {
     [self _cancelPrevPlay];
+    
     if (fromStart) {
         [self erase];
-        self.paintEvent.lastPaintStroke = nil;
     }
     else {
         //将最后绘制的那一笔再绘制一次
-        if (self.paintEvent.lastPaintStroke) {
-            NSPaintStroke *prev = [[NSPaintManager sharePaintManager] prevPaintStrokeForStrokeId:self.paintEvent.lastPaintStroke.strokeId];
+        if (self.paintEvent.lastRenderPaintStroke) {
+            NSPaintStroke *prev = [[NSPaintManager sharePaintManager] prevPaintStrokeInCurrentCacheEventForStrokeId:self.paintEvent.lastRenderPaintStroke.strokeId];
             if (prev) {
-                self.paintEvent.lastPaintStroke = prev;
+                self.paintEvent.lastRenderPaintStroke = prev;
             }
         }
     }
-    self.isPlaying = YES;
-    [self _playBackWithPaintEvent:self.paintEvent];
+    [self _beginPlayBackWithPaintEvent:self.paintEvent];
 }
 
 -(void)stopPlay
 {
     [self _cancelPrevPlay];
+    self.touchPaintEnabled = self.playTouchPaintEnabled;
 }
 
 -(NSUInteger)_undoLastStroke
@@ -315,8 +344,9 @@
     if (self.isPlaying) {
         return 0;
     }
+    
     NSUInteger strokeId = 0;
-    NSPaintStroke *last = self.paintEvent.lastPaintStroke;
+    NSPaintStroke *last = self.paintEvent.lastRenderPaintStroke;
     NSPaintStroke *prevStroke = nil;
     if (last == nil) {
         return 0;
@@ -325,7 +355,7 @@
     else {
         strokeId = last.strokeId;
     }
-    prevStroke = [[NSPaintManager sharePaintManager] prevPaintStrokeForStrokeId:strokeId];
+    prevStroke = [[NSPaintManager sharePaintManager] prevPaintStrokeInCurrentCacheEventForStrokeId:strokeId];
 #if 1
     [self clearFrameBuffer];
     NSUInteger prevStrokeId = prevStroke.strokeId;
@@ -333,7 +363,7 @@
     [[self.paintEvent paintStrokeIds] enumerateObjectsUsingBlock:^(NSNumber * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         NSUInteger strokeId = [obj unsignedIntegerValue];
         if (strokeId <= prevStrokeId) {
-            NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeForStrokeId:[obj unsignedIntegerValue]];
+            NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeInCurrentCacheEventForStrokeId:[obj unsignedIntegerValue]];
             [self renderWithStroke:stroke];
             haveRend = YES;
         }
@@ -343,8 +373,8 @@
     }];
     [self presentRenderbuffer];
     if (!haveRend) {
-        self.paintEvent.lastPaintStroke.lastPaintPoint = nil;
-        self.paintEvent.lastPaintStroke = nil;
+        self.paintEvent.lastRenderPaintStroke.lastPaintPoint = nil;
+        self.paintEvent.lastRenderPaintStroke = nil;
     }
 #else
     [self _renderWithStroke:last lineColor:WHITE_COLOR];
@@ -356,7 +386,10 @@
 
 -(void)undo
 {
+    BOOL touchEnable = self.touchPaintEnabled;
+    self.touchPaintEnabled = NO;
     [self _undoLastStroke];
+    self.touchPaintEnabled = touchEnable;
 }
 
 -(void)redo
@@ -364,13 +397,17 @@
     if (self.isPlaying) {
         return;
     }
-    NSPaintStroke *last = self.paintEvent.lastPaintStroke;
-    if ([[NSPaintManager sharePaintManager] isLastPaintStroke:last]) {
+    
+    BOOL touchEnable = self.touchPaintEnabled;
+    self.touchPaintEnabled = NO;
+    
+    NSPaintStroke *last = self.paintEvent.lastRenderPaintStroke;
+    if ([[NSPaintManager sharePaintManager] isLastPaintStrokeInCurrentCacheEvent:last]) {
         return;
     }
     NSUInteger nextStrokeId = 1;
     if (last) {
-        NSPaintStroke *nextStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeForStrokeId:last.strokeId];
+        NSPaintStroke *nextStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeInCurrentCacheEventForStrokeId:last.strokeId];
         nextStrokeId = nextStroke.strokeId;
     }
     NSUInteger lastStrokeId = last.strokeId;
@@ -381,7 +418,7 @@
             return ;
         }
         if (strokeId <= nextStrokeId) {
-            NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeForStrokeId:[obj unsignedIntegerValue]];
+            NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeInCurrentCacheEventForStrokeId:[obj unsignedIntegerValue]];
             [self renderWithStroke:stroke];
         }
         else {
@@ -389,6 +426,20 @@
         }
     }];
     [self presentRenderbuffer];
+    self.touchPaintEnabled = touchEnable;
+}
+
+-(void)erase
+{
+    BOOL touchEnable = self.touchPaintEnabled;
+    self.touchPaintEnabled = NO;
+    
+    [super erase];
+    self.paintEvent.lastRenderPaintStroke.lastPaintPoint = nil;
+    self.paintEvent.lastRenderPaintStroke.lastDisplayPoint = nil;
+    self.paintEvent.lastRenderPaintStroke = nil;
+    
+    self.touchPaintEnabled = touchEnable;
 }
 
 -(void)deletePaint
@@ -410,8 +461,8 @@
     }
 #if 1
     NSUInteger lastStrokeId = [self _undoLastStroke];
-    NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeForStrokeId:lastStrokeId];
-    [[NSPaintManager sharePaintManager] deletePaintStroke:stroke];
+    NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeInCurrentCacheEventForStrokeId:lastStrokeId];
+    [[NSPaintManager sharePaintManager] deletePaintStrokeInCurrentCacheEvent:stroke];
 #else
     NSNumber *lastStrokeId = [self.paintEvent.strokeIds lastObject];
     NSInteger lastStrokeIdI = [lastStrokeId integerValue];
@@ -433,5 +484,34 @@
     [[NSPaintManager sharePaintManager] deletePaintStroke:stroke];
 #endif
 }
+
+#if USE_TIMER
+-(void)_startPlayerTimer:(NSTimeInterval)timeInterval selector:(SEL)aSelector object:(id)object
+{
+    NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
+    if (object) {
+        [userInfo setObject:object forKey:TYPE_STR(object)];
+    }
+    if (aSelector) {
+        [userInfo setObject:[NSValue valueWithPointer:aSelector] forKey:TYPE_STR(aSelector)];
+    }
+    self.playTimer = [NSTimer timerWithTimeInterval:timeInterval target:[NSWeakProxy proxyWithTarget:self] selector:@selector(_timerAction:) userInfo:userInfo repeats:NO];
+    [[NSRunLoop currentRunLoop] addTimer:self.playTimer forMode:NSRunLoopCommonModes];
+}
+
+-(void)_timerAction:(NSTimer*)timer
+{
+    NSDictionary *userInfo = timer.userInfo;
+    id object = [userInfo objectForKey:TYPE_STR(object)];
+    SEL aSelector = [[userInfo objectForKey:TYPE_STR(aSelector)] pointerValue];
+    [self performSelector:aSelector withObject:object];
+}
+
+-(void)_invalidatePlayerTimer
+{
+    [self.playTimer invalidate];
+    self.playTimer = nil;
+}
+#endif
 
 @end

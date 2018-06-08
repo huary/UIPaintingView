@@ -40,6 +40,10 @@
 
 //清空渲染的数据
 -(void)clearFrameBuffer;
+
+//清空局部区域的数据
+-(void)clearFrameBufferInFrame:(CGRect)frame;
+
 //将渲染好的数据显示到屏幕
 -(void)presentRenderbuffer;
 //进行渲染并,preset为yes就是显示到屏幕，NO的话就不显示到屏幕
@@ -49,6 +53,9 @@
 
 //进行显示到屏幕的数据擦除
 -(void)erase;
+
+//将frame区域中的额数据擦除
+-(void)eraseInFrame:(CGRect)frame;
 
 //获取当前渲染的场景。
 -(UIImage*)snapshot;
