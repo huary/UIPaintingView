@@ -42,6 +42,8 @@
 //在进行undo的时候会将touchPaintEnabled设置为NO,结束的时候会还原touchPaintEnabled的值
 -(void)undo;
 
+-(void)undoFaster;
+
 //在进行redo的时候会将touchPaintEnabled设置为NO,结束的时候会还原touchPaintEnabled的值
 -(void)redo;
 

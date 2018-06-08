@@ -99,7 +99,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 -(NSString*)description
 {
-    return [NSString stringWithFormat:@"point=%@,pressure=%f,status=%ld,timerInterval=%f",NSStringFromCGPoint(self.point),self.pressure,self.status,self.timeInterval];
+    return [NSString stringWithFormat:@"point=%@,pressure=%f,status=%@,timerInterval=%f",NSStringFromCGPoint(self.point),self.pressure,@(self.status),self.timeInterval];
 }
 
 @end
@@ -110,15 +110,15 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
  *绘画的笔画，单次存入的最小单元
  ***********************************************************************/
 @interface NSPaintStroke ()
-@property (nonatomic, assign) NSUInteger eventId;
+@property (nonatomic, assign) uint64_t eventId;
 
 @property (nonatomic, strong) NSMutableArray<NSPaintPoint*> *strokePoints;
 
 -(void)save;
 -(void)deleteFromFile;
-+(void)deleteWithEventId:(NSUInteger)eventId strokeId:(NSUInteger)strokeId;
++(void)deleteWithEventId:(uint64_t)eventId strokeId:(NSUInteger)strokeId;
 
--(NSInteger)getPointIndexForTimeInterval:(NSTimeInterval)timeInterval fromIndex:(NSUInteger)fromIdx toIndex:(NSUInteger)toIdx;
+-(NSInteger)getPointIndexForTimeInterval:(NSTimeInterval)timeInterval fromIndex:(NSInteger)fromIdx toIndex:(NSInteger)toIdx;
 @end
 
 @implementation NSPaintStroke
@@ -158,7 +158,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return self;
 }
 
--(instancetype)initWithEventId:(NSUInteger)eventId
+-(instancetype)initWithEventId:(uint64_t)eventId
 {
     self = [self init];
     if (self) {
@@ -179,9 +179,9 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     }
 }
 
-+(NSString*)_saveKey:(NSUInteger)eventId strokeId:(NSUInteger)strokeId
++(NSString*)_saveKey:(uint64_t)eventId strokeId:(NSUInteger)strokeId
 {
-    return NEW_STRING_WITH_FORMAT(@"%ld_strokes/%ld",eventId,strokeId);
+    return NEW_STRING_WITH_FORMAT(@"%@_strokes/%@",@(eventId),@(strokeId));
 }
 
 -(void)save
@@ -194,12 +194,12 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     [Utils removeObjectFrom:[[self class] _saveKey:self.eventId strokeId:self.strokeId]];
 }
 
-+(void)deleteWithEventId:(NSUInteger)eventId strokeId:(NSUInteger)strokeId
++(void)deleteWithEventId:(uint64_t)eventId strokeId:(NSUInteger)strokeId
 {
     [Utils removeObjectFrom:[[self class] _saveKey:eventId strokeId:strokeId]];
 }
 
-+(NSPaintStroke*)loadWithEventId:(NSUInteger)eventId strokeId:(NSUInteger)strokeId
++(NSPaintStroke*)loadWithEventId:(uint64_t)eventId strokeId:(NSUInteger)strokeId
 {
     id obj = (NSPaintStroke*)[Utils loadObjectFrom:[[self class] _saveKey:eventId strokeId:strokeId]];
     return obj;
@@ -236,9 +236,15 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return time;
 }
 
--(NSInteger)getPointIndexForTimeInterval:(NSTimeInterval)timeInterval fromIndex:(NSUInteger)fromIdx toIndex:(NSUInteger)toIdx
+-(NSInteger)getPointIndexForTimeInterval:(NSTimeInterval)timeInterval fromIndex:(NSInteger)fromIdx toIndex:(NSInteger)toIdx
 {
-    NSUInteger findIdx = (fromIdx + toIdx)/2;
+    if (fromIdx > toIdx) {
+        return 0;
+    }
+    fromIdx = MAX(fromIdx, 0);
+    toIdx = MIN(toIdx, self.paintPoints.count);
+    
+    NSInteger findIdx = (fromIdx + toIdx)/2;
     if (findIdx >= self.strokePoints.count) {
         return -1;
     }
@@ -264,7 +270,50 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
         return [self getPointIndexForTimeInterval:timeInterval fromIndex:findIdx toIndex:toIdx];
     }
     return -1;
+}
+
+-(CGRect)_getPaintStrokeRectFromIndex:(NSInteger)fromIdx toIndex:(NSInteger)toIdx maxLineWidth:(CGFloat)maxLineWidth
+{
+    if (fromIdx > toIdx) {
+        return CGRectZero;
+    }
+    fromIdx = MAX(fromIdx, 0);
+    toIdx = MIN(toIdx, self.paintPoints.count);
+    CGFloat minX = CGFLOAT_MAX;
+    CGFloat minY = CGFLOAT_MAX;
+    CGFloat maxX = CGFLOAT_MIN;
+    CGFloat maxY = CGFLOAT_MIN;
     
+    maxLineWidth = MAX(1.0, maxLineWidth);
+    for (NSUInteger idx = fromIdx; idx < toIdx; ++idx) {
+        NSPaintPoint *tmp = self.paintPoints[idx];
+        minX = MIN(tmp.point.x, minX);
+        minY = MIN(tmp.point.y, minY);
+        
+        maxX = MAX(tmp.point.x, maxX);
+        maxY = MAX(tmp.point.y, maxY);
+        
+        maxLineWidth = MAX(maxLineWidth, tmp.lineWidth);
+    }
+    
+    CGFloat diff = maxLineWidth/2;
+    diff = MAX(1.0, diff);
+    
+    minX = minX - diff;
+    minY = minY - diff;
+    maxX = maxX + diff;
+    maxY = maxY + diff;
+    return CGRectMake(minX, minY, maxX - minX, maxY - minY);
+}
+
+-(CGRect)getPaintStrokeRectWithLineWidth:(CGFloat)lineWidth
+{
+    return [self _getPaintStrokeRectFromIndex:0 toIndex:NSIntegerMax maxLineWidth:lineWidth];
+}
+
+-(CGRect)getPaintStrokeRectFromPointIndex:(NSInteger)fromIndex toPointIndex:(NSInteger)toIndex withLineWidth:(CGFloat)lineWidth
+{
+    return [self _getPaintStrokeRectFromIndex:fromIndex toIndex:toIndex maxLineWidth:lineWidth];
 }
 
 @end
@@ -332,14 +381,14 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 -(void)save;
 
 -(void)deleteFromFile;
-+(void)deleteWithEventId:(NSUInteger)eventId;
++(void)deleteWithEventId:(uint64_t)eventId;
 @end
 
 @implementation NSPaintEvent
 
-+(NSString*)_saveKey:(NSUInteger)eventId
++(NSString*)_saveKey:(uint64_t)eventId
 {
-    return NEW_STRING_WITH_FORMAT(@"event/%ld", eventId);
+    return NEW_STRING_WITH_FORMAT(@"event/%@", @(eventId));
 }
 
 -(instancetype)init
@@ -355,7 +404,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 {
     self = [super init];
     if (self) {
-        self.eventId = [aDecoder decodeIntegerForKey:TYPE_STR(eventId)];
+        self.eventId = [aDecoder decodeInt64ForKey:TYPE_STR(eventId)];
         self.strokeIds = [aDecoder decodeObjectForKey:TYPE_STR(strokeIds)];
     }
     return self;
@@ -363,7 +412,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 -(void)encodeWithCoder:(NSCoder *)aCoder
 {
-    [aCoder encodeInteger:self.eventId forKey:TYPE_STR(eventId)];
+    [aCoder encodeInt64:self.eventId forKey:TYPE_STR(eventId)];
     [aCoder encodeObject:self.strokeIds forKey:TYPE_STR(strokeIds)];
 }
 
@@ -570,13 +619,13 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     [Utils removeObjectFrom:[[self class] _saveKey:self.eventId]];
 }
 
-+(void)deleteWithEventId:(NSUInteger)eventId
++(void)deleteWithEventId:(uint64_t)eventId
 {
     NSPaintEvent *event = [NSPaintEvent loadWithEventId:eventId];
     [event deleteFromFile];
 }
 
-+(NSPaintEvent*)loadWithEventId:(NSUInteger)eventId
++(NSPaintEvent*)loadWithEventId:(uint64_t)eventId
 {
     id obj = (NSPaintEvent*)[Utils loadObjectFrom:[[self class] _saveKey:eventId]];
     return obj;
@@ -700,14 +749,48 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return path;
 }
 
-+(NSString*)getEventSnapshotImageNameForEventId:(NSUInteger)eventId
++(NSString*)getEventSnapshotImageNameForEventId:(uint64_t)eventId
 {
-    return NEW_STRING_WITH_FORMAT(@"%ld.png",eventId);
+    return NEW_STRING_WITH_FORMAT(@"%@.png",@(eventId));
 }
 
-+(NSString*)getEventSnapshotImageFullPathForEventId:(NSUInteger)eventId
++(NSString*)getEventSnapshotImageFullPathForEventId:(uint64_t)eventId
 {
     return [[NSPaintEvent getEventSnapshotImagePath] stringByAppendingPathComponent:[NSPaintEvent getEventSnapshotImageNameForEventId:eventId]];
+}
+
+-(NSArray<NSNumber*>*)paintStrokeIdsForPointInRect:(CGRect)rect exceptStrokeIds:(NSArray<NSNumber*>*)exceptStrokeIds
+{
+    return [NSPaintEvent findPaintStrokeIdsFrom:self.paintStrokeIds eventId:self.eventId forPointInRect:rect exceptStrokeIds:exceptStrokeIds];
+}
+
++(NSArray<NSNumber*>*)findPaintStrokeIdsFrom:(NSArray<NSNumber*>*)paintStrokeIds eventId:(uint64_t)eventId forPointInRect:(CGRect)rect exceptStrokeIds:(NSArray<NSNumber*>*)exceptStrokeIds
+{
+    NSMutableArray *findObj = [NSMutableArray array];
+    [paintStrokeIds enumerateObjectsUsingBlock:^(NSNumber * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSUInteger strokeId = [obj unsignedIntegerValue];
+        NSPaintStroke *stroke = [NSPaintStroke loadWithEventId:eventId strokeId:strokeId];
+        __block BOOL isIn = NO;
+        [stroke.paintPoints enumerateObjectsUsingBlock:^(NSPaintPoint * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            if (CGRectContainsPoint(rect, obj.point)) {
+                isIn = YES;
+                *stop = YES;
+            }
+        }];
+        if (isIn) {
+            [exceptStrokeIds enumerateObjectsUsingBlock:^(NSNumber * _Nonnull except, NSUInteger idx, BOOL * _Nonnull stop) {
+                if ([except unsignedIntegerValue] == strokeId) {
+                    isIn = NO;
+                    *stop = YES;
+                }
+            }];
+            if (isIn) {
+                [findObj addObject:obj];
+                
+            }
+        }
+    }];
+    return findObj;
 }
 
 @end
@@ -810,7 +893,7 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
 -(void)_saveLastCacheEvent
 {
     if (self.cacheEvent) {
-        NSUInteger eventId = self.cacheEvent.eventId;
+        uint64_t eventId = self.cacheEvent.eventId;
         [self.allEventIdDict setObject:@(eventId) forKey:@(eventId)];
     }
     [self.cacheEvent save];
@@ -886,7 +969,7 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
     return event;
 }
 
--(NSPaintEvent*)cacheForEventId:(NSUInteger)eventId
+-(NSPaintEvent*)cacheForEventId:(uint64_t)eventId
 {
     if (self.cacheEvent.eventId == eventId) {
         return self.cacheEvent;
@@ -1033,7 +1116,7 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
 }
 
 //根据eventId移除Event
--(void)deleteEventForEventId:(NSUInteger)eventId
+-(void)deleteEventForEventId:(uint64_t)eventId
 {
     if (eventId == self.cacheEvent.eventId) {
         [self _clearMemoryCache];
@@ -1047,6 +1130,42 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
 -(NSArray<NSNumber*>*)getAllEventId
 {
     return [self.allEventIdDict allKeys];
+}
+
+
+-(NSArray<NSNumber*>*)paintStrokeIdsForPointInRectInCurrentCacheEvent:(CGRect)rect exceptStrokeIds:(NSArray<NSNumber*>*)exceptStrokeIds
+{
+    return [self findPaintStrokeIdsInCurrentCacheEventFrom:self.cacheEvent.paintStrokeIds forPointInRect:rect exceptStrokeIds:exceptStrokeIds];
+}
+
+-(NSArray<NSNumber*>*)findPaintStrokeIdsInCurrentCacheEventFrom:(NSArray<NSNumber*>*)paintStrokeIds forPointInRect:(CGRect)rect exceptStrokeIds:(NSArray<NSNumber*>*)exceptStrokeIds
+{
+    NSMutableArray *findObj = [NSMutableArray array];
+    [paintStrokeIds enumerateObjectsUsingBlock:^(NSNumber * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSUInteger strokeId = [obj unsignedIntegerValue];
+        NSPaintStroke *stroke = [self paintStrokeInCurrentCacheEventForStrokeId:strokeId];
+        __block BOOL isIn = NO;
+        [stroke.paintPoints enumerateObjectsUsingBlock:^(NSPaintPoint * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            if (CGRectContainsPoint(rect, obj.point)) {
+                isIn = YES;
+                *stop = YES;
+            }
+        }];
+        if (isIn) {
+            [exceptStrokeIds enumerateObjectsUsingBlock:^(NSNumber * _Nonnull except, NSUInteger idx, BOOL * _Nonnull stop) {
+                if ([except unsignedIntegerValue] == strokeId) {
+                    isIn = NO;
+                    *stop = YES;
+                }
+            }];
+            
+            if (isIn) {
+                [findObj addObject:obj];
+                
+            }
+        }
+    }];
+    return findObj;
 }
 
 +(dispatch_queue_t)_dataExecuteQueue

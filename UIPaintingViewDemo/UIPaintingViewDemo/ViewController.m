@@ -50,6 +50,7 @@
         }
         case 2: {
             [self.paintingView undo];
+//            [self.paintingView undoFaster];
             break;
         }
         case 3: {
@@ -87,7 +88,7 @@
     
     self.paintingView = [[UIPaintingView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 3 * functionBtnHeight)];
     self.paintingView.backgroundColor = LIGHT_GRAY_COLOR;
-    self.paintingView.brushWidth = 2.0;
+    self.paintingView.brushWidth = 3.0;
     self.paintingView.brushColor = RED_COLOR;
     self.paintingView.touchPaintEnabled = YES;
     self.paintingView.delegate = self;

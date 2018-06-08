@@ -392,6 +392,55 @@
     self.touchPaintEnabled = touchEnable;
 }
 
+-(NSUInteger)_undoFasterAction
+{
+    if (self.isPlaying) {
+        return 0;
+    }
+    
+    NSPaintStroke *last = self.paintEvent.lastRenderPaintStroke;
+    if (last == nil) {
+        return 0;
+    }
+    NSPaintStroke *prev = [[NSPaintManager sharePaintManager] prevPaintStrokeInCurrentCacheEventForStrokeId:last.strokeId];
+    
+    CGFloat maxLineWidth = MAX(self.maxLineWidth, self.brushWidth);
+    CGRect rect = [last getPaintStrokeRectWithLineWidth:maxLineWidth];
+    NSArray *intersectsStrokeIds = [[NSPaintManager sharePaintManager] paintStrokeIdsForPointInRectInCurrentCacheEvent:rect exceptStrokeIds:@[@(last.strokeId)]];
+    
+    NSMutableArray *newStrokeIds = [NSMutableArray array];
+    [intersectsStrokeIds enumerateObjectsUsingBlock:^(NSNumber * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([obj unsignedIntegerValue] < last.strokeId) {
+            [newStrokeIds addObject:obj];
+        }
+    }];
+    
+//    NSLog(@"intersectsStrokeIds.count=%ld",newStrokeIds.count);
+    if (!IS_AVAILABLE_NSSET_OBJ(newStrokeIds)) {
+        [self eraseInFrame:rect];
+    }
+    else {
+        [self eraseInFrame:rect];
+        [newStrokeIds enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeInCurrentCacheEventForStrokeId:[obj unsignedIntegerValue]];
+            [self renderWithStroke:stroke];
+        }];
+        [self presentRenderbuffer];
+    }
+    self.paintEvent.lastRenderPaintStroke = prev;
+    return last.strokeId;
+}
+
+-(void)undoFaster
+{
+    BOOL touchEnable = self.touchPaintEnabled;
+    self.touchPaintEnabled = NO;
+    
+    [self _undoFasterAction];
+    
+    self.touchPaintEnabled = touchEnable;
+}
+
 -(void)redo
 {
     if (self.isPlaying) {

@@ -68,17 +68,20 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 @property (nonatomic, assign) NSUInteger strokeId;
 @property (nonatomic, strong) UIColor *strokeColor;
 
--(instancetype)initWithEventId:(NSUInteger)eventId;
+-(instancetype)initWithEventId:(uint64_t)eventId;
 
 -(NSArray<NSPaintPoint*>*)paintPoints;
 -(void)addPaintPoint:(NSPaintPoint*)paintPoint;
 
-+(NSPaintStroke*)loadWithEventId:(NSUInteger)eventId strokeId:(NSUInteger)strokeId;
++(NSPaintStroke*)loadWithEventId:(uint64_t)eventId strokeId:(NSUInteger)strokeId;
 
 //返回的时间为秒
 -(NSTimeInterval)startTimeInterval;
 -(NSTimeInterval)endTimeInterval;
 -(NSTimeInterval)paintTimeInterval;
+
+-(CGRect)getPaintStrokeRectWithLineWidth:(CGFloat)lineWidth;
+-(CGRect)getPaintStrokeRectFromPointIndex:(NSInteger)fromIndex toPointIndex:(NSInteger)toIndex withLineWidth:(CGFloat)lineWidth;
 
 @end
 
@@ -107,7 +110,7 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 @interface NSPaintEvent : NSObject <NSCoding>
 
 //eventId就是创建的时间（微妙us）
-@property (nonatomic, assign) NSUInteger eventId;
+@property (nonatomic, assign) uint64_t eventId;
 
 -(NSArray<NSNumber*>*)paintStrokeIds;
 
@@ -137,7 +140,7 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 //是否是最后一笔
 -(BOOL)isLastPaintStroke:(NSPaintStroke*)stroke;
 
-+(NSPaintEvent*)loadWithEventId:(NSUInteger)eventId;
++(NSPaintEvent*)loadWithEventId:(uint64_t)eventId;
 
 -(NSTimeInterval)getEventTimeInterval;
 //获取落笔播放时间
@@ -150,8 +153,12 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 -(BOOL)canSave;
 
 +(NSString*)getEventSnapshotImagePath;
-+(NSString*)getEventSnapshotImageNameForEventId:(NSUInteger)eventId;
-+(NSString*)getEventSnapshotImageFullPathForEventId:(NSUInteger)eventId;
++(NSString*)getEventSnapshotImageNameForEventId:(uint64_t)eventId;
++(NSString*)getEventSnapshotImageFullPathForEventId:(uint64_t)eventId;
+
+-(NSArray<NSNumber*>*)paintStrokeIdsForPointInRect:(CGRect)rect exceptStrokeIds:(NSArray<NSNumber*>*)exceptStrokeIds;
+
++(NSArray<NSNumber*>*)findPaintStrokeIdsFrom:(NSArray<NSNumber*>*)paintStrokeIds eventId:(uint64_t)eventId forPointInRect:(CGRect)rect exceptStrokeIds:(NSArray<NSNumber*>*)exceptStrokeIds;
 
 @end
 
@@ -195,7 +202,7 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 -(NSPaintEvent*)cacheForNewEvent;
 
 //加载一个eventId的cache
--(NSPaintEvent*)cacheForEventId:(NSUInteger)eventId;
+-(NSPaintEvent*)cacheForEventId:(uint64_t)eventId;
 
 //从cache中移除，不移除文件，这个会进行保存
 -(void)removeCurrentCacheEvent;
@@ -238,10 +245,14 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
  *根据eventId移除Event
  *注意：这个是删除了存储
  */
--(void)deleteEventForEventId:(NSUInteger)eventId;
+-(void)deleteEventForEventId:(uint64_t)eventId;
 
 //获取所有的event的Id
 -(NSArray<NSNumber*>*)getAllEventId;
+
+-(NSArray<NSNumber*>*)paintStrokeIdsForPointInRectInCurrentCacheEvent:(CGRect)rect exceptStrokeIds:(NSArray<NSNumber*>*)exceptStrokeIds;
+
+-(NSArray<NSNumber*>*)findPaintStrokeIdsInCurrentCacheEventFrom:(NSArray<NSNumber*>*)paintStrokeIds forPointInRect:(CGRect)rect exceptStrokeIds:(NSArray<NSNumber*>*)exceptStrokeIds;
 
 -(void)addDataExecuteBlock:(NSPaintDataExecuteBlock)executeBlock completionBlock:(NSPaintDataExecuteCompletionBlock)completionBlock;
 
