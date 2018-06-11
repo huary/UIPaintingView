@@ -379,7 +379,7 @@
 #else
     [self _renderWithStroke:last lineColor:WHITE_COLOR];
     [self presentRenderbuffer];
-    self.paintEvent.lastPaintStroke = prevStroke;
+    self.paintEvent.lastRenderStroke = prevStroke;
 #endif
     return strokeId;
 }
