@@ -96,12 +96,12 @@
 
 -(void)_renderWithStroke:(NSPaintStroke*)stroke lineColor:(UIColor*)lineColor
 {
-    self.paintEvent.lastRenderPaintStroke = stroke;
+    self.paintEvent.lastRenderStroke = stroke;
     NSArray<NSPaintPoint*> *strokePoints  = [stroke paintPoints];
     for (NSPaintPoint *point in strokePoints) {
         [self _renderWithPoint:point present:NO addNewStroke:NO lineColor:lineColor];
     }
-    self.paintEvent.lastRenderPaintStroke.strokeId = stroke.strokeId;
+    self.paintEvent.lastRenderStroke.strokeId = stroke.strokeId;
 }
 
 -(BOOL)_shouldDisplayPoint:(NSPaintPoint*)point forPaintStroke:(NSPaintStroke*)stroke
@@ -118,10 +118,10 @@
 
 -(void)_checkLastRenderPaintStrokeWithPaintPoint:(NSPaintPoint*)paintPoint force:(BOOL)force
 {
-    if (self.paintEvent.lastRenderPaintStroke== nil || force) {
+    if (self.paintEvent.lastRenderStroke == nil || force) {
         NSPaintStroke *newStroke = [[NSPaintStroke alloc] initWithEventId:self.paintEvent.eventId];
         [newStroke addPaintPoint:paintPoint];
-        self.paintEvent.lastRenderPaintStroke = newStroke;
+        self.paintEvent.lastRenderStroke = newStroke;
     }
 }
 
@@ -137,26 +137,26 @@
     else if (paintPoint.status == NSPaintStatusMove) {
         [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:NO];
 
-        NSPaintPoint *lastPoint = self.paintEvent.lastRenderPaintStroke.lastPaintPoint;
+        NSPaintPoint *lastPoint = self.paintEvent.lastRenderStroke.lastPaintPoint;
         CGFloat lastLineWidth = [lastPoint getLineWidth:self.maxLineWidth];
         GLLinePoint *from = [[GLLinePoint alloc] initWithPoint:lastPoint.point lineWidth:lastLineWidth];
         
         GLLinePoint *to = [[GLLinePoint alloc] initWithPoint:paintPoint.point lineWidth:lineWidth];
         
         if (present) {
-            if (![self _shouldDisplayPoint:paintPoint forPaintStroke:self.paintEvent.lastRenderPaintStroke]) {
+            if (![self _shouldDisplayPoint:paintPoint forPaintStroke:self.paintEvent.lastRenderStroke]) {
                 present = NO;
             }
         }
         
         [self renderLineFromPoint:from toPoint:to lineColor:lineColor present:present];
         
-        [self.paintEvent.lastRenderPaintStroke addPaintPoint:paintPoint];
+        [self.paintEvent.lastRenderStroke addPaintPoint:paintPoint];
     }
     else {
         [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:NO];
         
-        NSPaintPoint *lastPoint = self.paintEvent.lastRenderPaintStroke.lastPaintPoint;
+        NSPaintPoint *lastPoint = self.paintEvent.lastRenderStroke.lastPaintPoint;
         CGFloat lastLineWidth = [lastPoint getLineWidth:self.maxLineWidth];
         GLLinePoint *from = [[GLLinePoint alloc] initWithPoint:lastPoint.point lineWidth:lastLineWidth];
         
@@ -164,14 +164,14 @@
         
         [self renderLineFromPoint:from toPoint:to lineColor:lineColor present:present];
         
-        [self.paintEvent.lastRenderPaintStroke addPaintPoint:paintPoint];
+        [self.paintEvent.lastRenderStroke addPaintPoint:paintPoint];
         if (addNew) {
-            [[NSPaintManager sharePaintManager] addPaintStrokeInCurrentCacheEvent:self.paintEvent.lastRenderPaintStroke];
+            [[NSPaintManager sharePaintManager] addPaintStrokeInCurrentCacheEvent:self.paintEvent.lastRenderStroke];
         }
     }
-    self.paintEvent.lastRenderPaintStroke.lastPaintPoint = paintPoint;
+    self.paintEvent.lastRenderStroke.lastPaintPoint = paintPoint;
     if (present) {
-        self.paintEvent.lastRenderPaintStroke.lastDisplayPoint = paintPoint;
+        self.paintEvent.lastRenderStroke.lastDisplayPoint = paintPoint;
     }
 }
 
@@ -209,7 +209,7 @@
     
     [self _renderWithPoint:paintPoint present:YES addNewStroke:NO lineColor:nil];
     stroke.lastPaintPoint = paintPoint;
-    self.paintEvent.lastRenderPaintStroke.strokeId = stroke.strokeId;
+    self.paintEvent.lastRenderStroke.strokeId = stroke.strokeId;
 
     if (paintPoint.status == NSPaintStatusBegan) {
         if ([self.delegate respondsToSelector:@selector(paintingView:startPlayPaintStroke:)]) {
@@ -217,9 +217,9 @@
         }
     }
     else if (paintPoint.status == NSPaintStatusMove) {
-        if (self.paintEvent.lastRenderPaintStroke.lastDisplayPoint == paintPoint) {
+        if (self.paintEvent.lastRenderStroke.lastDisplayPoint == paintPoint) {
             if ([self.delegate respondsToSelector:@selector(paintingView:playingPintStroke:paintPoint:)]) {
-                [self.delegate paintingView:self playingPintStroke:self.paintEvent.lastRenderPaintStroke paintPoint:paintPoint];
+                [self.delegate paintingView:self playingPintStroke:self.paintEvent.lastRenderStroke paintPoint:paintPoint];
             }
         }
     }
@@ -283,8 +283,8 @@
     }
     
     NSPaintStroke *paintStroke = nil;
-    if (paintEvent.lastRenderPaintStroke) {
-        paintStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeInCurrentCacheEventForStrokeId:paintEvent.lastRenderPaintStroke.strokeId];
+    if (paintEvent.lastRenderStroke) {
+        paintStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeInCurrentCacheEventForStrokeId:paintEvent.lastRenderStroke.strokeId];
     }
     else {
         paintStroke = [[NSPaintManager sharePaintManager] firstStrokeInCurrentCacheEvent];
@@ -323,10 +323,10 @@
     }
     else {
         //将最后绘制的那一笔再绘制一次
-        if (self.paintEvent.lastRenderPaintStroke) {
-            NSPaintStroke *prev = [[NSPaintManager sharePaintManager] prevPaintStrokeInCurrentCacheEventForStrokeId:self.paintEvent.lastRenderPaintStroke.strokeId];
+        if (self.paintEvent.lastRenderStroke) {
+            NSPaintStroke *prev = [[NSPaintManager sharePaintManager] prevPaintStrokeInCurrentCacheEventForStrokeId:self.paintEvent.lastRenderStroke.strokeId];
             if (prev) {
-                self.paintEvent.lastRenderPaintStroke = prev;
+                self.paintEvent.lastRenderStroke = prev;
             }
         }
     }
@@ -346,7 +346,7 @@
     }
     
     NSUInteger strokeId = 0;
-    NSPaintStroke *last = self.paintEvent.lastRenderPaintStroke;
+    NSPaintStroke *last = self.paintEvent.lastRenderStroke;
     NSPaintStroke *prevStroke = nil;
     if (last == nil) {
         return 0;
@@ -373,8 +373,8 @@
     }];
     [self presentRenderbuffer];
     if (!haveRend) {
-        self.paintEvent.lastRenderPaintStroke.lastPaintPoint = nil;
-        self.paintEvent.lastRenderPaintStroke = nil;
+        self.paintEvent.lastRenderStroke.lastPaintPoint = nil;
+        self.paintEvent.lastRenderStroke = nil;
     }
 #else
     [self _renderWithStroke:last lineColor:WHITE_COLOR];
@@ -398,7 +398,7 @@
         return 0;
     }
     
-    NSPaintStroke *last = self.paintEvent.lastRenderPaintStroke;
+    NSPaintStroke *last = self.paintEvent.lastRenderStroke;
     if (last == nil) {
         return 0;
     }
@@ -427,7 +427,7 @@
         }];
         [self presentRenderbuffer];
     }
-    self.paintEvent.lastRenderPaintStroke = prev;
+    self.paintEvent.lastRenderStroke = prev;
     return last.strokeId;
 }
 
@@ -450,7 +450,7 @@
     BOOL touchEnable = self.touchPaintEnabled;
     self.touchPaintEnabled = NO;
     
-    NSPaintStroke *last = self.paintEvent.lastRenderPaintStroke;
+    NSPaintStroke *last = self.paintEvent.lastRenderStroke;
     if ([[NSPaintManager sharePaintManager] isLastPaintStrokeInCurrentCacheEvent:last]) {
         return;
     }
@@ -484,9 +484,9 @@
     self.touchPaintEnabled = NO;
     
     [super erase];
-    self.paintEvent.lastRenderPaintStroke.lastPaintPoint = nil;
-    self.paintEvent.lastRenderPaintStroke.lastDisplayPoint = nil;
-    self.paintEvent.lastRenderPaintStroke = nil;
+    self.paintEvent.lastRenderStroke.lastPaintPoint = nil;
+    self.paintEvent.lastRenderStroke.lastDisplayPoint = nil;
+    self.paintEvent.lastRenderStroke = nil;
     
     self.touchPaintEnabled = touchEnable;
 }

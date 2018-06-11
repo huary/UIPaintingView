@@ -803,12 +803,12 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 @implementation NSPaintEvent (PlayBack)
 
--(void)setLastRenderPaintStroke:(NSPaintStroke *)lastRenderPaintStroke
+-(void)setLastRenderStroke:(NSPaintStroke *)lastRenderStroke
 {
-    objc_setAssociatedObject(self, @selector(lastRenderPaintStroke), lastRenderPaintStroke, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(self, @selector(lastRenderStroke), lastRenderStroke, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
--(NSPaintStroke*)lastRenderPaintStroke
+-(NSPaintStroke*)lastRenderStroke
 {
     return objc_getAssociatedObject(self, _cmd);
 }

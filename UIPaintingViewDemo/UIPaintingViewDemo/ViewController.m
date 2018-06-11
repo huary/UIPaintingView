@@ -131,7 +131,7 @@
     newStroke.strokeColor = self.paintingView.brushColor;
     [newStroke addPaintPoint:paintPoint];
     
-    self.paintingView.paintEvent.lastRenderPaintStroke = newStroke;
+    self.paintingView.paintEvent.lastRenderStroke = newStroke;
     
     return YES;
 }
@@ -144,7 +144,7 @@
     NSTimeInterval timeInterval = [[NSDate date] timeIntervalSince1970];
     NSPaintPoint *paintPoint = [[NSPaintPoint alloc] initWithPoint:currLoc pressure:0 status:NSPaintStatusMove timeInterval:timeInterval];
     
-    [self.paintingView.paintEvent.lastRenderPaintStroke addPaintPoint:paintPoint];
+    [self.paintingView.paintEvent.lastRenderStroke addPaintPoint:paintPoint];
     
     return YES;
 }
@@ -156,16 +156,16 @@
     
     NSLog(@"end.loc=%@",NSStringFromCGPoint(currLoc));
     
-    NSPaintPoint *last = [[self.paintingView.paintEvent.lastRenderPaintStroke paintPoints] lastObject];
+    NSPaintPoint *last = [[self.paintingView.paintEvent.lastRenderStroke paintPoints] lastObject];
     if (CGPointEqualToPoint(prevLoc, last.point)) {
         
 //        NSPaintPoint *paintPoint = [[NSPaintPoint alloc] initWithPoint:currLoc status:NSPaintStatusEnd lineWidth:self.paintingView.brushWidth];
         NSTimeInterval timeInterval = [[NSDate date] timeIntervalSince1970];
         NSPaintPoint *paintPoint = [[NSPaintPoint alloc] initWithPoint:currLoc pressure:0 status:NSPaintStatusEnd timeInterval:timeInterval];
         
-        [self.paintingView.paintEvent.lastRenderPaintStroke addPaintPoint:paintPoint];
+        [self.paintingView.paintEvent.lastRenderStroke addPaintPoint:paintPoint];
     }
-    [[NSPaintManager sharePaintManager] addPaintStrokeInCurrentCacheEvent:self.paintingView.paintEvent.lastRenderPaintStroke];
+    [[NSPaintManager sharePaintManager] addPaintStrokeInCurrentCacheEvent:self.paintingView.paintEvent.lastRenderStroke];
     return YES;
 }
 

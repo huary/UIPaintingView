@@ -169,7 +169,7 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
  ***********************************************************************/
 @interface NSPaintEvent (PlayBack)
 
-@property (nonatomic, strong) NSPaintStroke *lastRenderPaintStroke;
+@property (nonatomic, strong) NSPaintStroke *lastRenderStroke;
 
 @end
 
