@@ -165,6 +165,7 @@ typedef struct {
         return NO;
     }
     
+//    NSLog(@"newCtx=%@",context);
     // Set the view's scale factor as you wish
     self.contentScaleFactor = [UIScreen mainScreen].scale;
     
@@ -201,13 +202,19 @@ typedef struct {
 // the same size as our display area.
 -(void)layoutSubviews
 {
+    [super layoutSubviews];
     [EAGLContext setCurrentContext:context];
     
     if (!initialized) {
         initialized = [self _initGL];
     }
     else {
-//        [self _resizeFromLayer:(CAEAGLLayer*)self.layer];
+        CGSize size = self.bounds.size;
+        GLint width = size.width * self.contentScaleFactor;
+        GLint height = size.height * self.contentScaleFactor;
+        if (width != backingWidth || height != backingHeight) {
+            [self _resizeFromLayer:(CAEAGLLayer*)self.layer];
+        }
     }
     
     if (needsErase) {
@@ -379,7 +386,6 @@ typedef struct {
     [context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer];
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &backingWidth);
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &backingHeight);
-    
     // For this sample, we do not need a depth buffer. If you do, this is how you can allocate depth buffer backing:
 #if NEED_DEPTH_RENDER_BUFFER
     glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
@@ -391,7 +397,7 @@ typedef struct {
         NSLog(@"Failed to make complete framebuffer objectz %x", glCheckFramebufferStatus(GL_FRAMEBUFFER));
         return NO;
     }
-    
+
     // Update projection matrix
     GLKMatrix4 projectionMatrix = GLKMatrix4MakeOrtho(0, backingWidth, 0, backingHeight, -1, 1);
     // this sample uses a constant identity modelView matrix
@@ -506,13 +512,21 @@ typedef struct {
 }
 
 
+
 //接口==============
 -(void)setBrushWidth:(CGFloat)brushWidth
 {
     _brushWidth = brushWidth;
     if (initialized) {
+        EAGLContext *prevContext = [EAGLContext currentContext];
+        [EAGLContext setCurrentContext:context];
+
+//        NSLog(@"b.prevCtxt=%p,ctx=%p",prevContext,context);
+
         glUseProgram(program[PROGRAM_POINT].program);
         glUniform1f(program[PROGRAM_POINT].uniform[UNIFORM_POINT_SIZE], brushWidth * self.contentScaleFactor);
+        
+        [EAGLContext setCurrentContext:prevContext];
     }
 }
 
@@ -520,10 +534,17 @@ typedef struct {
 {
     _brushColor = brushColor;
     if (initialized) {
+        EAGLContext *prevContext = [EAGLContext currentContext];
+        [EAGLContext setCurrentContext:context];
+        
+//        NSLog(@"c.prevCtxt=%p,ctx=%p",prevContext,context);
+
         glUseProgram(program[PROGRAM_POINT].program);
         GLfloat brushColorC[4] = {0};
         [self _getColorComponentsForColor:brushColor outComponents:brushColorC];
         glUniform4fv(program[PROGRAM_POINT].uniform[UNIFORM_VERTEX_COLOR], 1, brushColorC);
+        
+        [EAGLContext setCurrentContext:prevContext];
     }
 }
 
@@ -548,10 +569,6 @@ typedef struct {
 -(void)clearFrameBufferInFrame:(CGRect)frame
 {
     [self _doClearFrameBufferAction];
-    
-//    CGFloat red = 0.0, green = 0.0, blue = 0.0, alpha = 0.0;
-//    [RAND_COLOR getRed:&red green:&green blue:&blue alpha:&alpha];
-//    glClearColor(red, green, blue, alpha);
     
     CGRect glRect = [self _convertRectToGLRect:frame];
     
@@ -615,16 +632,23 @@ typedef struct {
 
 -(void)erase
 {
+    EAGLContext *prevContext = [EAGLContext currentContext];
     [self clearFrameBuffer];
     
+//    NSLog(@"erase.prevCtxt=%p,ctx=%p",prevContext,context);
+    
     [self presentRenderbuffer];
+    
+    [EAGLContext setCurrentContext:prevContext];
 }
 
 -(void)eraseInFrame:(CGRect)frame
 {
+    EAGLContext *prevContext = [EAGLContext currentContext];
     [self clearFrameBufferInFrame:frame];
     
     [self presentRenderbuffer];
+    [EAGLContext setCurrentContext:prevContext];
 }
 
 - (UIImage*)snapshot
@@ -826,6 +850,7 @@ typedef struct {
         depthRenderbuffer = 0;
     }
 #endif
+
     // texture
     if (brushTexture.texId) {
         glDeleteTextures(1, &brushTexture.texId);
@@ -838,8 +863,10 @@ typedef struct {
     }
     // tear down context
     if ([EAGLContext currentContext] == context) {
+//        NSLog(@"tear down context");
         [EAGLContext setCurrentContext:nil];
     }
+    context = nil;
     
     if (vertexBuffer) {
         free(vertexBuffer);

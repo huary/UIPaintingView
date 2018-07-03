@@ -8,9 +8,11 @@
 
 #import "UIPaintingView.h"
 #import <objc/runtime.h>
-#import "NSWeakProxy.h"
 
 #define USE_TIMER                        (0)
+#if USE_TIMER
+#import "NSWeakProxy.h"
+#endif
 
 
 @interface UIPaintingView ()
