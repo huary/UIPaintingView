@@ -165,7 +165,6 @@ typedef struct {
         return NO;
     }
     
-//    NSLog(@"newCtx=%@",context);
     // Set the view's scale factor as you wish
     self.contentScaleFactor = [UIScreen mainScreen].scale;
     
@@ -520,9 +519,7 @@ typedef struct {
     if (initialized) {
         EAGLContext *prevContext = [EAGLContext currentContext];
         [EAGLContext setCurrentContext:context];
-
-//        NSLog(@"b.prevCtxt=%p,ctx=%p",prevContext,context);
-
+        
         glUseProgram(program[PROGRAM_POINT].program);
         glUniform1f(program[PROGRAM_POINT].uniform[UNIFORM_POINT_SIZE], brushWidth * self.contentScaleFactor);
         
@@ -536,8 +533,6 @@ typedef struct {
     if (initialized) {
         EAGLContext *prevContext = [EAGLContext currentContext];
         [EAGLContext setCurrentContext:context];
-        
-//        NSLog(@"c.prevCtxt=%p,ctx=%p",prevContext,context);
 
         glUseProgram(program[PROGRAM_POINT].program);
         GLfloat brushColorC[4] = {0};
@@ -634,8 +629,6 @@ typedef struct {
 {
     EAGLContext *prevContext = [EAGLContext currentContext];
     [self clearFrameBuffer];
-    
-//    NSLog(@"erase.prevCtxt=%p,ctx=%p",prevContext,context);
     
     [self presentRenderbuffer];
     
@@ -863,7 +856,6 @@ typedef struct {
     }
     // tear down context
     if ([EAGLContext currentContext] == context) {
-//        NSLog(@"tear down context");
         [EAGLContext setCurrentContext:nil];
     }
     context = nil;
