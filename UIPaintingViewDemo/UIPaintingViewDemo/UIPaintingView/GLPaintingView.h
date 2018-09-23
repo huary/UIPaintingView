@@ -57,6 +57,13 @@
 //将frame区域中的额数据擦除
 -(void)eraseInFrame:(CGRect)frame;
 
+/*
+ *设置渲染混合模式
+ *clear为YES时，brushColor为clear color就可以情况以前绘制的
+ *clear为NO时，还原到原先的设置模式
+ */
+-(void)setGLBlendModel:(BOOL)clear;
+
 //获取当前渲染的场景。
 -(UIImage*)snapshot;
 

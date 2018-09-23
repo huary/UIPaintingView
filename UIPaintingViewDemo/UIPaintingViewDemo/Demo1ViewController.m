@@ -39,10 +39,13 @@
 
 -(void)_btnAction:(UIButton*)sender
 {
+    [self.paintingView setGLBlendModel:NO];
+    self.paintingView.brushColor = RED_COLOR;
     switch (sender.tag) {
         case 1:
         {
             [self.paintingView redo];
+//            self.paintingView.brushColor = RAND_COLOR;
             break;
         }
         case 2: {
@@ -53,7 +56,11 @@
         case 3: {
             //            CGRect rect = [self.cropView cropRectForType:NSCropRectTypeIn];
             //            [self.paintingView eraseInFrame:rect];
-            [self.paintingView erase];
+            
+            //改为erase擦除
+            [self.paintingView setGLBlendModel:YES];
+            self.paintingView.brushColor = CLEAR_COLOR;
+//            [self.paintingView erase];
             break;
         }
         case 4: {
@@ -89,9 +96,15 @@
     
     UIButton *closeBtn = [self  _createButton:@"关闭" frame:CGRectMake(0, 0, 60, 64) tag:100];
     
-    self.paintingView = [[UIPaintingView alloc] initWithFrame:CGRectMake(0, closeBtn.bounds.size.height, SCREEN_WIDTH, SCREEN_HEIGHT -closeBtn.bounds.size.height - 3 * functionBtnHeight)];
-    self.paintingView.backgroundColor = LIGHT_GRAY_COLOR;
-    self.paintingView.brushWidth = 3.0;
+    CGRect frame = CGRectMake(0, closeBtn.bounds.size.height, SCREEN_WIDTH, SCREEN_HEIGHT -closeBtn.bounds.size.height - 3 * functionBtnHeight);
+    UIImageView *imgView = [[UIImageView alloc] initWithFrame:frame];
+    imgView.image = [UIImage imageNamed:@"test.jpg"];
+    imgView.contentMode = UIViewContentModeScaleToFill;
+    [self.view addSubview:imgView];
+    
+    self.paintingView = [[UIPaintingView alloc] initWithFrame:frame];
+    self.paintingView.backgroundColor = CLEAR_COLOR;
+    self.paintingView.brushWidth = 20;
     self.paintingView.brushColor = RED_COLOR;
     self.paintingView.touchPaintEnabled = YES;
     self.paintingView.delegate = self;

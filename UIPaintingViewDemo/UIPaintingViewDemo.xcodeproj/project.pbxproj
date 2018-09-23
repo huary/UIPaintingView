@@ -28,6 +28,7 @@
 		1C7BC62720EA964000802EF6 /* Demo1ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C7BC62620EA964000802EF6 /* Demo1ViewController.m */; };
 		1C7BC62A20EA965100802EF6 /* Demo2ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1C7BC62920EA965100802EF6 /* Demo2ViewController.m */; };
 		1CE1C4EE20C78A7600B0E2DA /* NSWeakProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 1CE1C4ED20C78A7600B0E2DA /* NSWeakProxy.m */; };
+		1CF67AC021560FDE007812C9 /* test.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 1CF67ABF21560FDE007812C9 /* test.jpg */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -71,6 +72,7 @@
 		1C7BC62920EA965100802EF6 /* Demo2ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Demo2ViewController.m; sourceTree = "<group>"; };
 		1CE1C4EC20C78A7600B0E2DA /* NSWeakProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSWeakProxy.h; sourceTree = "<group>"; };
 		1CE1C4ED20C78A7600B0E2DA /* NSWeakProxy.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NSWeakProxy.m; sourceTree = "<group>"; };
+		1CF67ABF21560FDE007812C9 /* test.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = test.jpg; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,6 +105,7 @@
 		1C108A6220C52E690036EFF5 /* UIPaintingViewDemo */ = {
 			isa = PBXGroup;
 			children = (
+				1CF67ABF21560FDE007812C9 /* test.jpg */,
 				1C53600920C6D70D00A6A351 /* Base */,
 				1C53600120C54DD600A6A351 /* Utils */,
 				1C53600020C5403400A6A351 /* Macro.h */,
@@ -270,6 +273,7 @@
 			files = (
 				1C535FFA20C53E2200A6A351 /* point.fsh in Resources */,
 				1C108A7020C52E690036EFF5 /* LaunchScreen.storyboard in Resources */,
+				1CF67AC021560FDE007812C9 /* test.jpg in Resources */,
 				1C535FFB20C53E2200A6A351 /* point.vsh in Resources */,
 				1C108A6D20C52E690036EFF5 /* Assets.xcassets in Resources */,
 				1C108A6B20C52E690036EFF5 /* Main.storyboard in Resources */,

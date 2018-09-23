@@ -644,6 +644,21 @@ typedef struct {
     [EAGLContext setCurrentContext:prevContext];
 }
 
+-(void)setGLBlendModel:(BOOL)clear
+{
+    EAGLContext *prevContext = [EAGLContext currentContext];
+    glEnable(GL_BLEND);
+    if (clear) {
+        glBlendFunc(GL_ONE, GL_ZERO);
+        
+    }
+    else {
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    }
+    [EAGLContext setCurrentContext:prevContext];
+
+}
+
 - (UIImage*)snapshot
 {
     if (SYSTEMVERSION_NUMBER >= 7.0) {
