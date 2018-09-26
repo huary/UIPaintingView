@@ -649,8 +649,8 @@ typedef struct {
     EAGLContext *prevContext = [EAGLContext currentContext];
     glEnable(GL_BLEND);
     if (clear) {
-        glBlendFunc(GL_ONE, GL_ZERO);
-        
+//        glBlendFunc(GL_ONE, GL_ZERO);
+        glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
     }
     else {
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);

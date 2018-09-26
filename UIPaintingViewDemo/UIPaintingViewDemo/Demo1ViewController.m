@@ -59,7 +59,8 @@
             
             //改为erase擦除
             [self.paintingView setGLBlendModel:YES];
-            self.paintingView.brushColor = CLEAR_COLOR;
+//            self.paintingView.brushWidth = 50;
+//            self.paintingView.brushColor = BLACK_COLOR;
 //            [self.paintingView erase];
             break;
         }
@@ -104,12 +105,13 @@
     
     self.paintingView = [[UIPaintingView alloc] initWithFrame:frame];
     self.paintingView.backgroundColor = CLEAR_COLOR;
-    self.paintingView.brushWidth = 20;
+    self.paintingView.brushWidth = 10;
     self.paintingView.brushColor = RED_COLOR;
     self.paintingView.touchPaintEnabled = YES;
     self.paintingView.delegate = self;
     self.paintingView.paintEvent = [[NSPaintManager sharePaintManager] cacheForNewEvent];
     [self.view addSubview:self.paintingView];
+    
     
     CGFloat space = 15;
     NSInteger cnt = 5;
