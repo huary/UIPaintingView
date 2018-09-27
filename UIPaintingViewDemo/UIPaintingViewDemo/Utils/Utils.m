@@ -65,6 +65,7 @@ const CGLineEquation CGLineEquationZero={.A = 0, .B = 0, .C = 0};
     return basePath;
 }
 
+//这里的fileName可以带有相对路径，
 +(NSString *)applicationStoreInfoDirectory:(NSString*)fileName
 {
     NSString *filePath = [Utils applicationCachesDirectory:nil];
@@ -73,11 +74,12 @@ const CGLineEquation CGLineEquationZero={.A = 0, .B = 0, .C = 0};
     NSString *pathName = [[NSString alloc] initWithFormat:@"%@.%@",bundleId,APPLICATION_INFO_PATH];
     filePath = [filePath stringByAppendingPathComponent:pathName];
     
-    [Utils checkAndCreateDirectory:filePath];
-    
+    NSString *directory = filePath;
     if (IS_AVAILABLE_NSSTRNG(fileName)) {
         filePath = [filePath stringByAppendingPathComponent:fileName];
+        directory = [filePath stringByDeletingLastPathComponent];
     }
+    [Utils checkAndCreateDirectory:directory];
     return filePath;
 }
 
@@ -147,7 +149,7 @@ const CGLineEquation CGLineEquationZero={.A = 0, .B = 0, .C = 0};
 {
     NSData *data = [Utils encodeObject:ObjectToSave forKey:SAVE_DATA_KEY];
     if (data) {
-        NSString *filePath = [[Utils applicationStoreInfoDirectory:nil] stringByAppendingPathComponent:filename];
+        NSString *filePath = [Utils applicationStoreInfoDirectory:filename];
         [data writeToFile:filePath atomically:YES];
     }
     return data;

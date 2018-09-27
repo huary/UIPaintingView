@@ -83,6 +83,7 @@
             break;
         }
         case 100: {
+            [[NSPaintManager sharePaintManager] save];
             [self dismissViewControllerAnimated:YES completion:nil];
         }
         default:
@@ -109,9 +110,12 @@
     self.paintingView.brushColor = RED_COLOR;
     self.paintingView.touchPaintEnabled = YES;
     self.paintingView.delegate = self;
+//    [[NSPaintManager sharePaintManager] loadEventIdDataFromPathPrefix:@"test"];
     self.paintingView.paintEvent = [[NSPaintManager sharePaintManager] cacheForNewEvent];
+    
     [self.view addSubview:self.paintingView];
     
+    NSLog(@"eventId=%@",@(self.paintingView.paintEvent.eventId));
     
     CGFloat space = 15;
     NSInteger cnt = 5;

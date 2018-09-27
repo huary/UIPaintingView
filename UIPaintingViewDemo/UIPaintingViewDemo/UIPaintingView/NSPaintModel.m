@@ -9,6 +9,9 @@
 #import "NSPaintModel.h"
 #import <objc/runtime.h>
 
+#define EVENT_DIR_NAME      @"event"
+#define STROKE_DIR_NAME     @"stroke"
+
 typedef NS_ENUM(NSInteger, NSTimeActionType)
 {
     NSTimeActionTypeTotal   = (1 << 0),
@@ -181,7 +184,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 +(NSString*)_saveKey:(uint64_t)eventId strokeId:(NSUInteger)strokeId
 {
-    return NEW_STRING_WITH_FORMAT(@"%@_strokes/%@",@(eventId),@(strokeId));
+    return NEW_STRING_WITH_FORMAT(@"%@/%@/%@_%@/%@",EVENT_DIR_NAME,@(eventId),@(eventId),@(strokeId),STROKE_DIR_NAME);
 }
 
 -(void)save
@@ -388,7 +391,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 +(NSString*)_saveKey:(uint64_t)eventId
 {
-    return NEW_STRING_WITH_FORMAT(@"event/%@", @(eventId));
+    return NEW_STRING_WITH_FORMAT(@"%@/%@/%@", EVENT_DIR_NAME, @(eventId), @(eventId));
 }
 
 -(instancetype)init
