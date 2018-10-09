@@ -64,8 +64,11 @@
  */
 -(void)setGLBlendModel:(BOOL)clear;
 
+-(BOOL)isInClearModel;
+
 //获取当前渲染的场景。
 -(UIImage*)snapshot;
+
 
 //+(BOOL)havePainted;
 

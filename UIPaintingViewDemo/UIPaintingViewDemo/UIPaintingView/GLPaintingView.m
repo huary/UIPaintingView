@@ -107,6 +107,10 @@ typedef struct {
 }
 
 @property (nonatomic, assign) CGSize renderSize;
+
+/* <#name#> */
+@property (nonatomic, assign) BOOL isInClear;
+
 @end
 
 
@@ -649,14 +653,26 @@ typedef struct {
     EAGLContext *prevContext = [EAGLContext currentContext];
     glEnable(GL_BLEND);
     if (clear) {
+        brushTexture = [self _textureFromName:@"erase.png"];
+        self.isInClear = YES;
+        self.brushColor = [self.brushColor colorWithAlphaComponent:1.0];
+        
 //        glBlendFunc(GL_ONE, GL_ZERO);
+//        glBlendFunc(GL_ZERO, GL_ZERO);
         glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
     }
     else {
+        brushTexture = [self _textureFromName:@"Particle.png"];
+        
+        self.isInClear = NO;
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     }
     [EAGLContext setCurrentContext:prevContext];
+}
 
+-(BOOL)isInClearModel
+{
+    return self.isInClear;
 }
 
 - (UIImage*)snapshot

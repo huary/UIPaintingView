@@ -15,6 +15,9 @@
 /** 注释 */
 @property (nonatomic, strong) UIPaintingView *paintingView;
 
+/* <#注释#> */
+@property (nonatomic, strong) UIImageView *eraseImageView;
+
 @end
 
 @implementation Demo1ViewController
@@ -37,6 +40,29 @@
     return button;
 }
 
+-(UIColor*)_getOtherColor:(UIColor*)color
+{
+    CGFloat r, g, b, a;
+    [self.paintingView.brushColor getRed:&r green:&g blue:&b alpha:&a];
+    r = 1 - r;
+    g = 1 - g;
+    b = 1 - b;
+    return [UIColor colorWithRed:r green:g blue:b alpha:1];
+}
+
+-(UIImageView*)eraseImageView
+{
+    if (_eraseImageView == nil) {
+        _eraseImageView = [UIImageView new];
+        CGFloat w = self.paintingView.brushWidth;
+        _eraseImageView.bounds = CGRectMake(0, 0, w, w);
+        _eraseImageView.layer.cornerRadius = w/2;
+        _eraseImageView.backgroundColor = [self _getOtherColor:self.paintingView.brushColor];
+        [self.paintingView addSubview:_eraseImageView];
+    }
+    return _eraseImageView;
+}
+
 -(void)_btnAction:(UIButton*)sender
 {
     [self.paintingView setGLBlendModel:NO];
@@ -44,13 +70,14 @@
     switch (sender.tag) {
         case 1:
         {
-            [self.paintingView redo];
+//            [self.paintingView redo];
 //            self.paintingView.brushColor = RAND_COLOR;
             break;
         }
         case 2: {
             [self.paintingView undo];
-            //            [self.paintingView undoFaster];
+//            [self.paintingView undoFaster];
+//            [self.paintingView deleteLastStroke];
             break;
         }
         case 3: {
@@ -59,8 +86,13 @@
             
             //改为erase擦除
             [self.paintingView setGLBlendModel:YES];
-//            self.paintingView.brushWidth = 50;
-//            self.paintingView.brushColor = BLACK_COLOR;
+            self.paintingView.brushWidth = 100;//100;
+//            self.paintingView.brushColor = [self.paintingView.brushColor colorWithAlphaComponent:1.0];
+            
+            CGFloat r, g, b, a;
+            [self.paintingView.brushColor getRed:&r green:&g blue:&b alpha:&a];
+            NSLog(@"r=%f,g=%f,b=%f,a=%f",a,g,b,a);
+            
 //            [self.paintingView erase];
             break;
         }
@@ -106,7 +138,7 @@
     
     self.paintingView = [[UIPaintingView alloc] initWithFrame:frame];
     self.paintingView.backgroundColor = CLEAR_COLOR;
-    self.paintingView.brushWidth = 10;
+    self.paintingView.brushWidth = 2.0;
     self.paintingView.brushColor = RED_COLOR;
     self.paintingView.touchPaintEnabled = YES;
     self.paintingView.delegate = self;
@@ -146,7 +178,15 @@
 {
     CGPoint currLoc = [touch locationInView:paintingView];
     
-    NSLog(@"start.loc=%@",NSStringFromCGPoint(currLoc));
+    if ([paintingView isInClearModel]) {
+        self.eraseImageView.center = currLoc;
+    }
+    else {
+        [_eraseImageView removeFromSuperview];
+        _eraseImageView = nil;
+    }
+    
+//    NSLog(@"start.loc=%@",NSStringFromCGPoint(currLoc));
     
     //    NSPaintPoint *paintPoint = [[NSPaintPoint alloc] initWithPoint:currLoc status:NSPaintStatusBegan lineWidth:self.paintingView.brushWidth];
     
@@ -166,6 +206,14 @@
 {
     CGPoint currLoc = [touch locationInView:paintingView];
     
+    if ([paintingView isInClearModel]) {
+        self.eraseImageView.center = currLoc;
+    }
+    else {
+        [_eraseImageView removeFromSuperview];
+        _eraseImageView = nil;
+    }
+    
     //    NSPaintPoint *paintPoint = [[NSPaintPoint alloc] initWithPoint:currLoc status:NSPaintStatusMove lineWidth:self.paintingView.brushWidth];
     NSTimeInterval timeInterval = [[NSDate date] timeIntervalSince1970];
     NSPaintPoint *paintPoint = [[NSPaintPoint alloc] initWithPoint:currLoc pressure:0 status:NSPaintStatusMove timeInterval:timeInterval];
@@ -180,7 +228,15 @@
     CGPoint prevLoc = [touch previousLocationInView:paintingView];
     CGPoint currLoc = [touch locationInView:paintingView];
     
-    NSLog(@"end.loc=%@",NSStringFromCGPoint(currLoc));
+    if ([paintingView isInClearModel]) {
+        self.eraseImageView.center = currLoc;
+    }
+    else {
+        [_eraseImageView removeFromSuperview];
+        _eraseImageView = nil;
+    }
+    
+//    NSLog(@"end.loc=%@",NSStringFromCGPoint(currLoc));
     
     NSPaintPoint *last = [[self.paintingView.paintEvent.lastRenderStroke paintPoints] lastObject];
     if (CGPointEqualToPoint(prevLoc, last.point)) {
