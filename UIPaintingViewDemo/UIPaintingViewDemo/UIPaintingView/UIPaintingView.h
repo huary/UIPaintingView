@@ -19,6 +19,9 @@
 @end
 
 
+/***********************************************************************
+ *UIPaintingView
+ ***********************************************************************/
 @interface UIPaintingView : GLPaintingView
 
 @property (nonatomic, strong) NSPaintEvent *paintEvent;
@@ -32,11 +35,12 @@
 
 //在进行render的时候会将touchPaintEnabled设置为NO,结束的时候会还原touchPaintEnabled的值
 -(void)renderWithPoint:(NSPaintPoint*)paintPoint;
--(void)renderWithStroke:(NSPaintStroke*)stroke;
+-(void)renderWithPoint:(NSPaintPoint*)paintPoint addToEvent:(BOOL)addToEvent;
+-(void)renderWithStroke:(NSPaintStroke*)stroke addToEvent:(BOOL)addToEvent;
 
 //在进行播放的时候会将touchPaintEnabled设置为NO，在结束或停止播放的时候还原
 -(void)playBack:(BOOL)fromStart;
-
+//停止播放
 -(void)stopPlay;
 
 //在进行undo的时候会将touchPaintEnabled设置为NO,结束的时候会还原touchPaintEnabled的值
@@ -54,5 +58,22 @@
 -(void)deletePaint;
 
 -(void)deleteLastStroke;
+
+-(void)fastPlayBack:(NSInteger)displayStrokesPerSecond;
+
+@end
+
+
+
+
+
+
+
+/***********************************************************************
+ *UIPaintingView (PlayBack)
+ ***********************************************************************/
+@interface UIPaintingView (PlayBack)
+
+@property (nonatomic, assign) int64_t playId;
 
 @end

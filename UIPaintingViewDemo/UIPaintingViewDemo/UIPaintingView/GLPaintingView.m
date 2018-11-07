@@ -186,6 +186,11 @@ typedef struct {
     return YES;
 }
 
+-(EAGLContext*)getGLContext
+{
+    return context;
+}
+
 -(void)_getColorComponentsForColor:(UIColor*)color outComponents:(GLfloat*)colorComponents
 {
     if (colorComponents == NULL) {
@@ -663,8 +668,8 @@ typedef struct {
     }
     else {
         brushTexture = [self _textureFromName:@"Particle.png"];
-        
         self.isInClear = NO;
+        
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     }
     [EAGLContext setCurrentContext:prevContext];
@@ -793,6 +798,8 @@ typedef struct {
             return;
         }
     }
+    
+    self.brushWidth = _brushWidth;
     
     CGPoint loc = [touch locationInView:self];
 #if USE_LOCAL_PREV_TOUCH_POINT

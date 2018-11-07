@@ -13,7 +13,6 @@
 
 #import "NSPaintModel.h"
 
-
 @class GLPaintingView;
 
 @protocol GLPaintingViewDelegate <NSObject>
@@ -37,6 +36,8 @@
 @property (nonatomic, assign) BOOL touchPaintEnabled;
 
 @property (nonatomic, weak) id<GLPaintingViewDelegate> delegate;
+
+-(EAGLContext*)getGLContext;
 
 //清空渲染的数据
 -(void)clearFrameBuffer;
@@ -68,8 +69,5 @@
 
 //获取当前渲染的场景。
 -(UIImage*)snapshot;
-
-
-//+(BOOL)havePainted;
 
 @end

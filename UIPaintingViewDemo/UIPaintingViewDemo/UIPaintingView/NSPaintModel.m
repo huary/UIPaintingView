@@ -11,6 +11,11 @@
 
 #define EVENT_DIR_NAME      @"event"
 #define STROKE_DIR_NAME     @"stroke"
+#define INVALID_PLAY_ID     (0LL)
+
+#define IS_VALID_STROKE_ID(STROKE_ID)       (STROKE_ID > 0)
+#define IS_VALID_EVENT_ID(EVENT_ID)         (EVENT_ID > 0)
+
 
 typedef NS_ENUM(NSInteger, NSTimeActionType)
 {
@@ -19,6 +24,55 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     //began，end
     NSTimeActionTypeBE      = (1 << 2),
 };
+
+
+/***********************************************************************
+ *NSPaintPlayInfo
+ ***********************************************************************/
+@implementation NSPaintPlayInfo
+
+-(instancetype)init
+{
+    self = [super init];
+    if (self) {
+        self.playId = USEC_FROM_DATE_SINCE1970([NSDate date]);
+    }
+    return self;
+}
+
+-(instancetype)initWithPlayId:(int64_t)playId playTime:(NSTimeInterval)playTime
+{
+    self = [self init];
+    if (self) {
+        self.playId = playId;
+        self.playTime = playTime;
+    }
+    return self;
+}
+
+-(instancetype)initWithCoder:(NSCoder *)aDecoder
+{
+    self = [super init];
+    if (self) {
+        self.playId = [aDecoder decodeInt64ForKey:TYPE_STR(playId)];
+        self.playTime = [aDecoder decodeDoubleForKey:TYPE_STR(playTime)];
+    }
+    return self;
+}
+
+-(void)encodeWithCoder:(NSCoder *)aCoder
+{
+    [aCoder encodeInt64:self.playId forKey:TYPE_STR(playId)];
+    [aCoder encodeDouble:self.playTime forKey:TYPE_STR(playTime)];
+}
+
+@end
+
+
+
+
+
+
 
 /***********************************************************************
  *GLLinePoint
@@ -36,6 +90,13 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 }
 
 @end
+
+
+
+
+
+
+
 
 /***********************************************************************
  *NSPaintPoint
@@ -107,6 +168,26 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 @end
 
+/***********************************************************************
+ *NSPaintPoint(PlayBack)
+ ***********************************************************************/
+@implementation NSPaintPoint (PlayBack)
+
+-(void)setStartPlay:(NSPaintPlayInfo *)startPlay
+{
+    objc_setAssociatedObject(self, @selector(startPlay), startPlay, OBJC_ASSOCIATION_RETAIN);
+}
+
+-(NSPaintPlayInfo*)startPlay
+{
+    return objc_getAssociatedObject(self, _cmd);
+}
+
+@end
+
+
+
+
 
 /***********************************************************************
  *NSPaintStroke
@@ -130,6 +211,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 {
     self = [super init];
     if (self) {
+        self.eventId = [aDecoder decodeInt64ForKey:TYPE_STR(eventId)];
         self.strokeId = [aDecoder decodeIntegerForKey:TYPE_STR(strokeId)];
         self.strokeColor = [aDecoder decodeObjectForKey:TYPE_STR(strokeColor)];
         self.strokePoints = [aDecoder decodeObjectForKey:TYPE_STR(paintStroke)];
@@ -139,6 +221,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 -(void)encodeWithCoder:(NSCoder *)aCoder
 {
+    [aCoder encodeInt64:self.eventId forKey:TYPE_STR(eventId)];
     [aCoder encodeInteger:self.strokeId forKey:TYPE_STR(strokeId)];
     [aCoder encodeObject:self.strokeColor forKey:TYPE_STR(strokeColor)];
     [aCoder encodeObject:self.strokePoints forKey:TYPE_STR(paintStroke)];
@@ -170,6 +253,15 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return self;
 }
 
+-(instancetype)initWithEventId:(uint64_t)eventId strokeColor:(UIColor *)strokeColor {
+    
+    self = [self initWithEventId:eventId];
+    if (self) {
+        self.strokeColor = strokeColor;
+    }
+    return self;
+}
+
 -(NSArray<NSPaintPoint*>*)paintPoints
 {
     return [self.strokePoints copy];
@@ -189,6 +281,9 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 -(void)save
 {
+    if (!IS_VALID_EVENT_ID(self.eventId) || !IS_VALID_STROKE_ID(self.strokeId)) {
+        return;
+    }
     [Utils saveObject:self to:[[self class] _saveKey:self.eventId strokeId:self.strokeId]];
 }
 
@@ -233,9 +328,6 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
         return 0;
     }
     NSTimeInterval time = [self endTimeInterval] - [self startTimeInterval];
-    if (time > [NSPaintManager sharePaintManager].pointsMaxTimeInterval) {
-        time = [NSPaintManager sharePaintManager].pointsMaxTimeInterval;
-    }
     return time;
 }
 
@@ -321,7 +413,6 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 @end
 
-
 /***********************************************************************
  *NSPaintStroke (PlayBack)
  *回放时需要用到，存储上一次绘制的点
@@ -350,28 +441,73 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return objc_getAssociatedObject(self, _cmd);
 }
 
--(void)setStartPlayTimeInterval:(NSTimeInterval)startPlayTimeInterval
+-(void)setStartPlay:(NSPaintPlayInfo *)startPlay
 {
-    objc_setAssociatedObject(self, @selector(startPlayTimeInterval), @(startPlayTimeInterval), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(self, @selector(startPlay), startPlay, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
--(NSTimeInterval)startPlayTimeInterval
+-(NSPaintPlayInfo*)startPlay
 {
-    return [objc_getAssociatedObject(self, _cmd) doubleValue];
+    return objc_getAssociatedObject(self, _cmd);
 }
 
-
--(void)setEndPlayTimeInterval:(NSTimeInterval)endPlayTimeInterval
+-(void)setEndPlay:(NSPaintPlayInfo *)endPlay
 {
-    objc_setAssociatedObject(self, @selector(endPlayTimeInterval), @(endPlayTimeInterval), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(self, @selector(endPlay), endPlay, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
--(NSTimeInterval)endPlayTimeInterval
+-(NSPaintPlayInfo*)endPlay
 {
-    return [objc_getAssociatedObject(self, _cmd) doubleValue];
+    return objc_getAssociatedObject(self, _cmd);
 }
 
 @end
+
+
+
+
+
+
+
+/***********************************************************************
+ *NSPaintEventConfig
+ *整个一次画画的配置
+ ***********************************************************************/
+@implementation NSPaintEventConfig
+
+-(instancetype)initWithAdjacentPointsMaxTimeInterval:(NSTimeInterval)adjacentPointsMaxTimeInterval adjacentStrokesMaxFreeTimeInterval:(NSTimeInterval)adjacentStrokesMaxFreeTimeInterval
+{
+    self = [super init];
+    if (self) {
+        self.adjacentPointsMaxTimeInterval = adjacentPointsMaxTimeInterval;
+        self.adjacentStrokesMaxFreeTimeInterval = adjacentStrokesMaxFreeTimeInterval;
+    }
+    return self;
+}
+
+-(instancetype)initWithCoder:(NSCoder *)aDecoder
+{
+    self = [super init];
+    if (self) {
+        self.adjacentPointsMaxTimeInterval = [aDecoder decodeDoubleForKey:TYPE_STR(adjacentPointsMaxTimeInterval)];
+        self.adjacentStrokesMaxFreeTimeInterval = [aDecoder decodeDoubleForKey:TYPE_STR(adjacentStrokesMaxFreeTimeInterval)];
+    }
+    return self;
+}
+
+-(void)encodeWithCoder:(NSCoder *)aCoder
+{
+    [aCoder encodeDouble:self.adjacentPointsMaxTimeInterval forKey:TYPE_STR(adjacentPointsMaxTimeInterval)];
+    [aCoder encodeDouble:self.adjacentStrokesMaxFreeTimeInterval forKey:TYPE_STR(adjacentStrokesMaxFreeTimeInterval)];
+}
+
+@end
+
+
+
+
+
+
 
 /***********************************************************************
  *NSPaintEvent
@@ -399,6 +535,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     self = [super init];
     if (self) {
         self.eventId = USEC_FROM_DATE_SINCE1970([NSDate date]);
+        self.eventConfig = [[NSPaintEventConfig alloc] initWithAdjacentPointsMaxTimeInterval:2 adjacentStrokesMaxFreeTimeInterval:5];
     }
     return self;
 }
@@ -409,6 +546,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     if (self) {
         self.eventId = [aDecoder decodeInt64ForKey:TYPE_STR(eventId)];
         self.strokeIds = [aDecoder decodeObjectForKey:TYPE_STR(strokeIds)];
+        self.eventConfig = [aDecoder decodeObjectForKey:TYPE_STR(eventConfig)];
     }
     return self;
 }
@@ -417,6 +555,7 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 {
     [aCoder encodeInt64:self.eventId forKey:TYPE_STR(eventId)];
     [aCoder encodeObject:self.strokeIds forKey:TYPE_STR(strokeIds)];
+    [aCoder encodeObject:self.eventConfig forKey:TYPE_STR(eventConfig)];
 }
 
 -(NSMutableArray<NSNumber*>*)strokeIds
@@ -565,6 +704,14 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     if (strokeId == 0) {
         return nil;
     }
+    
+    if (self.eventId == [NSPaintManager sharePaintManager].currentCacheEvent.eventId) {
+        NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeOnlyInCurrentCacheEventForStrokeId:strokeId];
+        if (stroke.eventId == self.eventId) {
+            return stroke;
+        }
+    }
+    
     NSPaintStroke *stroke = [NSPaintStroke loadWithEventId:self.eventId strokeId:strokeId];
     return stroke;
 }
@@ -653,41 +800,44 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     for (NSNumber *obj in self.strokeIds) {
         NSUInteger strokeId = [obj unsignedIntegerValue];
         
-//        NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeForStrokeId:strokeId];
         NSPaintStroke *stroke = [self paintStrokeForStrokeId:strokeId];
         
         prevTotal = totalTimeInterval;
-        totalTimeInterval += [stroke paintTimeInterval];
+        NSTimeInterval strokeTime = [stroke paintTimeInterval];
+        strokeTime = MIN(strokeTime, self.eventConfig.adjacentPointsMaxTimeInterval);
+        
+        totalTimeInterval += strokeTime;
         
         if (TYPE_AND(actionType, NSTimeActionTypeBE)) {
             NSPaintStroke *findTmp = *findStroke;
             if (findTmp && findTmp.strokeId == strokeId) {
-                findTmp.startPlayTimeInterval = prevTotal;
-                findTmp.endPlayTimeInterval = totalTimeInterval;
+                findTmp.startPlay = [[NSPaintPlayInfo alloc] initWithPlayId:INVALID_PLAY_ID playTime:prevTotal];
+                findTmp.endPlay = [[NSPaintPlayInfo alloc] initWithPlayId:INVALID_PLAY_ID playTime:totalTimeInterval];
+                
+                if (actionType == NSTimeActionTypeBE) {
+                    break;
+                }
             }
         }
         
-//        NSPaintStroke *nextStroke = [[NSPaintManager sharePaintManager] nextPaintStrokeForStrokeId:stroke.strokeId];
         NSPaintStroke *nextStroke = [self nextPaintStrokeForStrokeId:stroke.strokeId];
         if (nextStroke) {
             NSTimeInterval freeDiff = [nextStroke startTimeInterval] - [stroke endTimeInterval];
-            if (freeDiff > [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval) {
-                freeDiff = [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval;
-            }
+            freeDiff = MIN(freeDiff, self.eventConfig.adjacentStrokesMaxFreeTimeInterval);
             totalTimeInterval += freeDiff;
         }
         
         if (TYPE_AND(actionType, NSTimeActionTypeFind)) {
             if (strokeTimeInterval >= prevTotal && strokeTimeInterval < totalTimeInterval) {
                 findObj = stroke;
-                if (!TYPE_AND(actionType, NSTimeActionTypeTotal)) {
-                    break;
-                }
             }
             else if (strokeTimeInterval == totalTimeInterval) {
                 if ([self.strokeIds lastObject] == obj) {
                     findObj = stroke;
                 }
+            }
+            if (!TYPE_AND(actionType, NSTimeActionTypeTotal) && findObj) {
+                break;
             }
         }
 //        NSLog(@"strokeId=%ld,timeInterval=%f,pt=%f,tt=%f",strokeId,strokeTimeInterval,prevTotal,totalTimeInterval);
@@ -704,29 +854,53 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 }
 
 //获取落笔播放时间
--(NSTimeInterval)getStartPlayTimeIntervalForStroke:(NSPaintStroke*)stroke
+-(NSTimeInterval)getStartPlayTimeIntervalForStroke:(NSPaintStroke*)stroke playId:(int64_t)playId
 {
     if (stroke == nil) {
         return 0;
     }
+    
+//    if (!IS_VALID_PLAY_ID(playId) && playId == stroke.startPlay.playId) {
+//        return stroke.startPlay.playTime;
+//    }
+    if (stroke.startPlay) {
+        return stroke.startPlay.playTime;
+    }
     [self _getEventTimeInterval:NSTimeActionTypeBE strokeTimeInterval:-1 findStroke:&stroke];
-    return stroke.startPlayTimeInterval;
+    stroke.startPlay.playId = playId;
+    return stroke.startPlay.playTime;
 }
 
 //获取抬笔播放时间
--(NSTimeInterval)getEndPlayTimeIntervalForStroke:(NSPaintStroke*)stroke
+-(NSTimeInterval)getEndPlayTimeIntervalForStroke:(NSPaintStroke*)stroke playId:(int64_t)playId
 {
     if (stroke == nil) {
         return 0;
     }
+//    if (!IS_VALID_PLAY_ID(playId) && playId == stroke.endPlay.playId) {
+//        return stroke.endPlay.playTime;
+//    }
+    if (stroke.endPlay) {
+        return stroke.endPlay.playTime;
+    }
     [self _getEventTimeInterval:NSTimeActionTypeBE strokeTimeInterval:-1 findStroke:&stroke];
-    return stroke.endPlayTimeInterval;
+    stroke.endPlay.playId = playId;
+    return stroke.endPlay.playTime;
 }
 
--(NSTimeInterval)getPointPlayTimeInterForStorke:(NSPaintStroke*)stroke point:(NSPaintPoint*)paintPoint
+-(NSTimeInterval)getPointPlayTimeInterForStorke:(NSPaintStroke*)stroke point:(NSPaintPoint*)paintPoint playId:(int64_t)playId
 {
-    NSTimeInterval start = [self getStartPlayTimeIntervalForStroke:stroke];
-    
+    if (stroke == nil || paintPoint == nil) {
+        return 0;
+    }
+//    if (!IS_VALID_PLAY_ID(playId) && playId == paintPoint.startPlay.playId) {
+//        return paintPoint.startPlay.playTime;
+//    }
+    if (paintPoint.startPlay) {
+        return paintPoint.startPlay.playTime;
+    }
+    NSTimeInterval start = [self getStartPlayTimeIntervalForStroke:stroke playId:playId];
+
     if (!IS_AVAILABLE_NSSET_OBJ([stroke paintPoints])) {
         return start;
     }
@@ -735,10 +909,10 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     if (currentDiff < 0) {
         return start;
     }
-    if (currentDiff > [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval) {
-        currentDiff = [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval;
-    }
-    return start + currentDiff;
+    currentDiff = MIN(currentDiff, self.eventConfig.adjacentStrokesMaxFreeTimeInterval);
+    NSTimeInterval playTime = start + currentDiff;
+    paintPoint.startPlay = [[NSPaintPlayInfo alloc] initWithPlayId:playId playTime:playTime];
+    return playTime;
 }
 
 -(BOOL)canSave
@@ -798,7 +972,6 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
 
 @end
 
-
 /***********************************************************************
  *NSPaintEvent (PlayBack)
  *回放时需要用到，存储上一次绘制的线
@@ -816,7 +989,33 @@ typedef NS_ENUM(NSInteger, NSTimeActionType)
     return objc_getAssociatedObject(self, _cmd);
 }
 
+-(void)setLastDisplayStrokeTime:(NSTimeInterval)lastDisplayStrokeTime
+{
+    objc_setAssociatedObject(self, @selector(lastDisplayStrokeTime), @(lastDisplayStrokeTime), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+-(NSTimeInterval)lastDisplayStrokeTime
+{
+    return [objc_getAssociatedObject(self, _cmd) doubleValue];
+}
+
+-(void)setFastPlayDisplayStrokesPerSecond:(NSInteger)fastPlayDisplayStrokesPerSecond
+{
+    objc_setAssociatedObject(self, @selector(fastPlayDisplayStrokesPerSecond), @(fastPlayDisplayStrokesPerSecond), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+-(NSInteger)fastPlayDisplayStrokesPerSecond
+{
+    return [objc_getAssociatedObject(self, _cmd) integerValue];
+}
+
 @end
+
+
+
+
+
+
 
 
 /**************************************************************
@@ -873,15 +1072,10 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
 
 -(void)_loadSelfData
 {
-    self.pointsMaxTimeInterval = [[NSUserDefaults standardUserDefaults] doubleForKey:TYPE_STR(pointsMaxTimeInterval)];
-    self.strokesMaxFreeTimeInterval = [[NSUserDefaults standardUserDefaults] doubleForKey:TYPE_STR(strokesMaxFreeTimeInterval)];
 }
 
 -(void)_saveSelfData
 {
-    [[NSUserDefaults standardUserDefaults] setDouble:self.pointsMaxTimeInterval forKey:TYPE_STR(strokesMaxFreeTimeInterval)];
-    [[NSUserDefaults standardUserDefaults] setDouble:self.strokesMaxFreeTimeInterval forKey:TYPE_STR(strokesMaxFreeTimeInterval)];
-    [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 -(NSMutableDictionary<NSNumber*,NSNumber*>*)allEventIdDict
@@ -1065,6 +1259,15 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
     return [self paintStrokeInCurrentCacheEventForStrokeId:prevStrokeId];
 }
 
+//从当前cache的event中获取strokeId的NSPaintStroke的对象，仅仅只是从cache中获取，有可能为空
+-(NSPaintStroke*)paintStrokeOnlyInCurrentCacheEventForStrokeId:(NSUInteger)strokeId
+{
+    if (strokeId == 0) {
+        return nil;
+    }
+    return [self.eventMemoryCache objectForKey:@(strokeId)];
+}
+
 -(NSPaintStroke*)firstStrokeInCurrentCacheEvent
 {
     NSUInteger firstStrokeId = [self.cacheEvent _firstOrLastStrokeId:YES];
@@ -1100,7 +1303,7 @@ static dispatch_queue_t _paintDataQueue_s = NULL;
     [self.cacheEvent _getEventTimeInterval:NSTimeActionTypeFind strokeTimeInterval:timeInterval findStroke:&stroke];
     
     if (paintPointIndex != NULL) {
-        NSTimeInterval start = [self.cacheEvent getStartPlayTimeIntervalForStroke:stroke];
+        NSTimeInterval start = [self.cacheEvent getStartPlayTimeIntervalForStroke:stroke playId:-1];
         timeInterval = timeInterval - start;
         NSInteger idex = [stroke getPointIndexForTimeInterval:timeInterval fromIndex:0 toIndex:stroke.strokePoints.count-1];
         if (paintPointIndex) {

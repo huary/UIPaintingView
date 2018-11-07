@@ -8,6 +8,8 @@
 
 #import <Foundation/Foundation.h>
 
+#define IS_VALID_PLAY_ID(PLAY_ID)         (PLAY_ID > 0)
+
 typedef NS_ENUM(NSInteger, NSPaintStatus)
 {
     NSPaintStatusBegan,
@@ -18,6 +20,26 @@ typedef NS_ENUM(NSInteger, NSPaintStatus)
 //存储文件操作
 typedef id(^NSPaintDataExecuteBlock)(void);
 typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
+
+
+/***********************************************************************
+ *NSPaintPlayInfo
+ ***********************************************************************/
+@interface NSPaintPlayInfo : NSObject <NSCoding>
+
+/* <#name#> */
+@property (nonatomic, assign) int64_t playId;
+
+//开始播放时间，格林威治绝对时间,单位为秒
+@property (nonatomic, assign) NSTimeInterval playTime;
+
+-(instancetype)initWithPlayId:(int64_t)playId playTime:(NSTimeInterval)playTime;
+@end
+
+
+
+
+
 
 /***********************************************************************
  *GLLinePoint
@@ -30,6 +52,10 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 -(instancetype)initWithPoint:(CGPoint)point lineWidth:(CGFloat)lineWidth;
 @end
 
+
+
+
+
 /***********************************************************************
  *NSPaintPoint
  ***********************************************************************/
@@ -37,7 +63,7 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 
 //坐标点
 @property (nonatomic, assign) CGPoint point;
-//根据这个触摸压力反应线的粗细
+//根据这个触摸压力反应线的粗细,0-100
 @property (nonatomic, assign) CGFloat pressure;
 //写得状态
 @property (nonatomic, assign) NSPaintStatus status;
@@ -58,6 +84,19 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 @end
 
 /***********************************************************************
+ *NSPaintPoint(PlayBack)
+ ***********************************************************************/
+@interface NSPaintPoint (PlayBack)
+//开始播放的时间
+@property (nonatomic, strong) NSPaintPlayInfo *startPlay;
+
+@end
+
+
+
+
+
+/***********************************************************************
  *NSPaintStroke
  *绘画的笔画，单次存入的最小单元
  ***********************************************************************/
@@ -66,9 +105,11 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
  （按已经已经加入的最后一个strokeId+1来进行计算）
  */
 @property (nonatomic, assign) NSUInteger strokeId;
+//笔的颜色
 @property (nonatomic, strong) UIColor *strokeColor;
 
 -(instancetype)initWithEventId:(uint64_t)eventId;
+-(instancetype)initWithEventId:(uint64_t)eventId strokeColor:(UIColor *)strokeColor;
 
 -(NSArray<NSPaintPoint*>*)paintPoints;
 -(void)addPaintPoint:(NSPaintPoint*)paintPoint;
@@ -78,13 +119,14 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 //返回的时间为秒
 -(NSTimeInterval)startTimeInterval;
 -(NSTimeInterval)endTimeInterval;
+//就是endTimeInterval-startTimeInterval
 -(NSTimeInterval)paintTimeInterval;
 
 -(CGRect)getPaintStrokeRectWithLineWidth:(CGFloat)lineWidth;
 -(CGRect)getPaintStrokeRectFromPointIndex:(NSInteger)fromIndex toPointIndex:(NSInteger)toIndex withLineWidth:(CGFloat)lineWidth;
 
-@end
 
+@end
 
 /***********************************************************************
  *NSPaintStroke (PlayBack)
@@ -97,10 +139,34 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 //上次显示的
 @property (nonatomic, strong) NSPaintPoint *lastDisplayPoint;
 
-@property (nonatomic, assign) NSTimeInterval startPlayTimeInterval;
-@property (nonatomic, assign) NSTimeInterval endPlayTimeInterval;
+//开始播放时间
+@property (nonatomic, strong) NSPaintPlayInfo *startPlay;
+//结束播放时间
+@property (nonatomic, strong) NSPaintPlayInfo *endPlay;
 
 @end
+
+
+
+
+
+
+/***********************************************************************
+ *NSPaintEventConfig
+ *整个一次画画的配置
+ ***********************************************************************/
+@interface NSPaintEventConfig : NSObject <NSCoding>
+
+@property (nonatomic, assign) NSTimeInterval adjacentPointsMaxTimeInterval;
+@property (nonatomic, assign) NSTimeInterval adjacentStrokesMaxFreeTimeInterval;
+
+-(instancetype)initWithAdjacentPointsMaxTimeInterval:(NSTimeInterval)adjacentPointsMaxTimeInterval adjacentStrokesMaxFreeTimeInterval:(NSTimeInterval)adjacentStrokesMaxFreeTimeInterval;
+
+@end
+
+
+
+
 
 
 /***********************************************************************
@@ -111,6 +177,8 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 
 //eventId就是创建的时间（微妙us）
 @property (nonatomic, assign) uint64_t eventId;
+//默认为adjacentPointsMaxTimeInterval:2,adjacentStrokesMaxFreeTimeInterval:5
+@property (nonatomic, strong) NSPaintEventConfig *eventConfig;
 
 -(NSArray<NSNumber*>*)paintStrokeIds;
 
@@ -143,12 +211,12 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 +(NSPaintEvent*)loadWithEventId:(uint64_t)eventId;
 
 -(NSTimeInterval)getEventTimeInterval;
-//获取落笔播放时间
--(NSTimeInterval)getStartPlayTimeIntervalForStroke:(NSPaintStroke*)stroke;
-//获取抬笔播放时间
--(NSTimeInterval)getEndPlayTimeIntervalForStroke:(NSPaintStroke*)stroke;
-//获取某一笔某一个点的播放时间
--(NSTimeInterval)getPointPlayTimeInterForStorke:(NSPaintStroke*)stroke point:(NSPaintPoint*)paintPoint;
+//获取落笔播放时间,playId为无效时(<=0),就是获取从事件的时间重新获取
+-(NSTimeInterval)getStartPlayTimeIntervalForStroke:(NSPaintStroke*)stroke playId:(int64_t)playId;
+//获取抬笔播放时间,playId为无效时(<=0),就是获取从事件的时间重新获取
+-(NSTimeInterval)getEndPlayTimeIntervalForStroke:(NSPaintStroke*)stroke  playId:(int64_t)playId;
+//获取某一笔某一个点的播放时间,playId为无效时(<=0),就是获取从事件的时间重新获取
+-(NSTimeInterval)getPointPlayTimeInterForStorke:(NSPaintStroke*)stroke point:(NSPaintPoint*)paintPoint playId:(int64_t)playId;
 
 -(BOOL)canSave;
 
@@ -162,7 +230,6 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 
 @end
 
-
 /***********************************************************************
  *NSPaintEvent (PlayBack)
  *回放时需要用到，存储上一次绘制的线
@@ -170,8 +237,17 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 @interface NSPaintEvent (PlayBack)
 
 @property (nonatomic, strong) NSPaintStroke *lastRenderStroke;
+/* <#name#> */
+@property (nonatomic, assign) NSTimeInterval lastDisplayStrokeTime;
+/* <#name#> */
+@property (nonatomic, assign) NSInteger fastPlayDisplayStrokesPerSecond;
 
 @end
+
+
+
+
+
 
 
 /***********************************************************************
@@ -180,9 +256,6 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
  *这个已经进行了cache，真正cache的对象是NSPaintStroke
  ***********************************************************************/
 @interface NSPaintManager : NSObject
-
-@property (nonatomic, assign) CGFloat pointsMaxTimeInterval;
-@property (nonatomic, assign) CGFloat strokesMaxFreeTimeInterval;
 
 +(instancetype)sharePaintManager;
 
@@ -219,6 +292,9 @@ typedef void(^NSPaintDataExecuteCompletionBlock)(id result);
 
 //从当前的strokeId获取上一个paintStroke
 -(NSPaintStroke*)prevPaintStrokeInCurrentCacheEventForStrokeId:(NSUInteger)strokeId;
+
+//从当前cache的event中获取strokeId的NSPaintStroke的对象，仅仅只是从cache中获取，有可能为空
+-(NSPaintStroke*)paintStrokeOnlyInCurrentCacheEventForStrokeId:(NSUInteger)strokeId;
 
 //第一笔
 -(NSPaintStroke*)firstStrokeInCurrentCacheEvent;

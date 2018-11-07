@@ -30,7 +30,9 @@
 
 @end
 
-
+/***********************************************************************
+ *UIPaintingView
+ ***********************************************************************/
 @implementation UIPaintingView
 
 @dynamic delegate;
@@ -69,8 +71,6 @@
     //1-60
     self.displayFreq = 20;
     self.playRatio = 1.0;
-    [NSPaintManager sharePaintManager].pointsMaxTimeInterval = 2.0;
-    [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval = 5.0;
 }
 
 -(CGFloat)_getFreqTimeInterval
@@ -80,28 +80,33 @@
 
 -(void)renderWithPoint:(NSPaintPoint*)paintPoint
 {
+    [self renderWithPoint:paintPoint addToEvent:YES];
+}
+
+-(void)renderWithPoint:(NSPaintPoint*)paintPoint addToEvent:(BOOL)addToEvent
+{
     BOOL touchEnable = self.touchPaintEnabled;
     self.touchPaintEnabled = NO;
-    [self _renderWithPoint:paintPoint present:YES addNewStroke:YES lineColor:nil];
+    [self _renderWithPoint:paintPoint present:YES addNewStroke:addToEvent lineColor:nil];
     self.touchPaintEnabled = touchEnable;
 }
 
--(void)renderWithStroke:(NSPaintStroke*)stroke
+-(void)renderWithStroke:(NSPaintStroke*)stroke addToEvent:(BOOL)addToEvent
 {
     BOOL touchEnable = self.touchPaintEnabled;
     self.touchPaintEnabled = NO;
     
-    [self _renderWithStroke:stroke lineColor:stroke.strokeColor];
+    [self _renderStroke:stroke addToEvent:addToEvent];
     
     self.touchPaintEnabled = touchEnable;
 }
 
--(void)_renderWithStroke:(NSPaintStroke*)stroke lineColor:(UIColor*)lineColor
+-(void)_renderStroke:(NSPaintStroke*)stroke addToEvent:(BOOL)addToEvent
 {
     self.paintEvent.lastRenderStroke = stroke;
     NSArray<NSPaintPoint*> *strokePoints  = [stroke paintPoints];
     for (NSPaintPoint *point in strokePoints) {
-        [self _renderWithPoint:point present:NO addNewStroke:NO lineColor:lineColor];
+        [self _renderWithPoint:point present:NO addNewStroke:addToEvent lineColor:stroke.strokeColor];
     }
     self.paintEvent.lastRenderStroke.strokeId = stroke.strokeId;
 }
@@ -118,10 +123,13 @@
     return NO;
 }
 
--(void)_checkLastRenderPaintStrokeWithPaintPoint:(NSPaintPoint*)paintPoint force:(BOOL)force
+-(void)_checkLastRenderPaintStrokeWithPaintPoint:(NSPaintPoint*)paintPoint force:(BOOL)force strokeColor:(UIColor*)strokeColor
 {
+    if (!strokeColor) {
+        strokeColor = self.brushColor;
+    }
     if (self.paintEvent.lastRenderStroke == nil || force) {
-        NSPaintStroke *newStroke = [[NSPaintStroke alloc] initWithEventId:self.paintEvent.eventId];
+        NSPaintStroke *newStroke = [[NSPaintStroke alloc] initWithEventId:self.paintEvent.eventId strokeColor:strokeColor];
         [newStroke addPaintPoint:paintPoint];
         self.paintEvent.lastRenderStroke = newStroke;
     }
@@ -131,13 +139,13 @@
 {
     CGFloat lineWidth = [paintPoint getLineWidth:self.maxLineWidth];
     if (paintPoint.status == NSPaintStatusBegan) {
-        [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:YES];
+        [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:YES strokeColor:lineColor];
 
         GLLinePoint *from = [[GLLinePoint alloc] initWithPoint:paintPoint.point lineWidth:lineWidth];
         [self renderLineFromPoint:from toPoint:from lineColor:lineColor present:present];
     }
     else if (paintPoint.status == NSPaintStatusMove) {
-        [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:NO];
+        [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:NO strokeColor:lineColor];
 
         NSPaintPoint *lastPoint = self.paintEvent.lastRenderStroke.lastPaintPoint;
         CGFloat lastLineWidth = [lastPoint getLineWidth:self.maxLineWidth];
@@ -156,7 +164,7 @@
         [self.paintEvent.lastRenderStroke addPaintPoint:paintPoint];
     }
     else {
-        [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:NO];
+        [self _checkLastRenderPaintStrokeWithPaintPoint:paintPoint force:NO strokeColor:lineColor];
         
         NSPaintPoint *lastPoint = self.paintEvent.lastRenderStroke.lastPaintPoint;
         CGFloat lastLineWidth = [lastPoint getLineWidth:self.maxLineWidth];
@@ -180,7 +188,10 @@
 -(CGFloat)_getPlayDiffTimeInterval:(NSTimeInterval)timeInterval
 {
     if (self.playRatio > 0) {
-        return timeInterval/self.playRatio;
+        timeInterval = timeInterval/self.playRatio;
+    }
+    if (timeInterval < 1.0/ 100) {
+        timeInterval = 0;
     }
     return timeInterval;
 }
@@ -209,7 +220,7 @@
         self.touchPaintEnabled = NO;
     }
     
-    [self _renderWithPoint:paintPoint present:YES addNewStroke:NO lineColor:nil];
+    [self _renderWithPoint:paintPoint present:YES addNewStroke:NO lineColor:stroke.strokeColor];
     stroke.lastPaintPoint = paintPoint;
     self.paintEvent.lastRenderStroke.strokeId = stroke.strokeId;
 
@@ -239,13 +250,8 @@
     if (nextIdx < paintPoints.count) {
         NSPaintPoint *nextPoint = paintPoints[nextIdx];
         NSTimeInterval diff = [NSPaintPoint getTimeIntervalFrom:paintPoint to:nextPoint];
-        if (diff > [NSPaintManager sharePaintManager].pointsMaxTimeInterval) {
-            diff = [NSPaintManager sharePaintManager].pointsMaxTimeInterval;
-        }
+        diff = MIN(diff, self.paintEvent.eventConfig.adjacentPointsMaxTimeInterval);
         diff = [self _getPlayDiffTimeInterval:diff];
-        if (diff <= CGFLOAT_MIN) {
-            diff = 0;
-        }
 #if USE_TIMER
         [self _startPlayerTimer:diff selector:@selector(_playBackRenderStroke:) object:stroke];
 #else
@@ -259,14 +265,8 @@
             return;
         }
         NSTimeInterval diff = [nextStroke startTimeInterval] - [stroke endTimeInterval];
-        if (diff > [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval) {
-            diff = [NSPaintManager sharePaintManager].strokesMaxFreeTimeInterval;
-        }
+        diff = MIN(diff, self.paintEvent.eventConfig.adjacentStrokesMaxFreeTimeInterval);
         diff = [self _getPlayDiffTimeInterval:diff];
-        
-        if (diff <= CGFLOAT_MIN) {
-            diff = 0;
-        }
 #if USE_TIMER
         [self _startPlayerTimer:diff selector:@selector(_playBackWithPaintEvent:) object:self.paintEvent];
 #else
@@ -352,12 +352,12 @@
     NSPaintStroke *prevStroke = nil;
     if (last == nil) {
         return 0;
-//        strokeId = [[[self.paintEvent paintStrokeIds] lastObject] integerValue];
     }
     else {
         strokeId = last.strokeId;
     }
     prevStroke = [[NSPaintManager sharePaintManager] prevPaintStrokeInCurrentCacheEventForStrokeId:strokeId];
+    
 #if 1
     [self clearFrameBuffer];
     NSUInteger prevStrokeId = prevStroke.strokeId;
@@ -366,7 +366,7 @@
         NSUInteger strokeId = [obj unsignedIntegerValue];
         if (strokeId <= prevStrokeId) {
             NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeInCurrentCacheEventForStrokeId:[obj unsignedIntegerValue]];
-            [self renderWithStroke:stroke];
+            [self renderWithStroke:stroke addToEvent:NO];
             haveRend = YES;
         }
         else {
@@ -417,7 +417,6 @@
         }
     }];
     
-//    NSLog(@"intersectsStrokeIds.count=%ld",newStrokeIds.count);
     if (!IS_AVAILABLE_NSSET_OBJ(newStrokeIds)) {
         [self eraseInFrame:rect];
     }
@@ -425,7 +424,7 @@
         [self eraseInFrame:rect];
         [newStrokeIds enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeInCurrentCacheEventForStrokeId:[obj unsignedIntegerValue]];
-            [self renderWithStroke:stroke];
+            [self renderWithStroke:stroke addToEvent:NO];
         }];
         [self presentRenderbuffer];
     }
@@ -470,7 +469,7 @@
         }
         if (strokeId <= nextStrokeId) {
             NSPaintStroke *stroke = [[NSPaintManager sharePaintManager] paintStrokeInCurrentCacheEventForStrokeId:[obj unsignedIntegerValue]];
-            [self renderWithStroke:stroke];
+            [self renderWithStroke:stroke addToEvent:NO];
         }
         else {
             *stop = YES;
@@ -564,5 +563,80 @@
     self.playTimer = nil;
 }
 #endif
+
+-(void)_fastPlayBackStroke:(NSPaintStroke*)stroke
+{
+    NSInteger displayStrokeFreq = self.paintEvent.fastPlayDisplayStrokesPerSecond;
+    if (stroke == nil) {
+        self.isPlaying = NO;
+        return;
+    }
+    
+    if ([self.delegate respondsToSelector:@selector(paintingView:startPlayPaintStroke:)]) {
+        [self.delegate paintingView:self startPlayPaintStroke:stroke];
+    }
+    NSTimeInterval start = [[NSDate date] timeIntervalSince1970];
+    
+    [self renderWithStroke:stroke addToEvent:NO];
+
+    CGFloat freq = [self _getFreqTimeInterval];
+    if (start - self.paintEvent.lastDisplayStrokeTime > freq || [self.paintEvent isLastPaintStroke:stroke]) {
+        
+//        NSLog(@"preset.strokeId=%ld",stroke.strokeId);
+        
+        [self presentRenderbuffer];
+        self.paintEvent.lastDisplayStrokeTime = start;
+    }
+    
+    NSPaintStroke *nextStroke = [self.paintEvent nextPaintStrokeForStrokeId:stroke.strokeId];
+    if (nextStroke) {
+        NSTimeInterval end = [[NSDate date] timeIntervalSince1970];
+        NSTimeInterval elapsed = end - start;
+        
+        NSTimeInterval diff = 1.0/displayStrokeFreq - elapsed;
+        //增加一个保护措施
+        diff = MAX(diff, 1.0/10000);
+//        diff = MAX(diff, 0);
+
+        [self performSelector:@selector(_fastPlayBackStroke:) withObject:nextStroke afterDelay:diff];
+    }
+    else {
+        self.isPlaying = NO;
+    }
+    if ([self.delegate respondsToSelector:@selector(paintingView:endPlayPaintStroke:)]) {
+        [self.delegate paintingView:self endPlayPaintStroke:stroke];
+    }
+}
+
+-(void)fastPlayBack:(NSInteger)displayStrokesPerSecond
+{
+    [self _cancelPrevPlay];
+    [self erase];
+    self.isPlaying = YES;
+    self.paintEvent.fastPlayDisplayStrokesPerSecond = displayStrokesPerSecond;
+    NSPaintStroke *first = [self.paintEvent firstPaintStroke];
+    [self _fastPlayBackStroke:first];
+}
+
+@end
+
+
+
+
+/***********************************************************************
+ *UIPaintingView (PlayBack)
+ ***********************************************************************/
+@implementation UIPaintingView (PlayBack)
+
+
+-(void)setPlayId:(int64_t)playId
+{
+    objc_setAssociatedObject(self, @selector(playId), @(playId), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+-(int64_t)playId
+{
+    return [objc_getAssociatedObject(self, _cmd) longLongValue];
+}
 
 @end
