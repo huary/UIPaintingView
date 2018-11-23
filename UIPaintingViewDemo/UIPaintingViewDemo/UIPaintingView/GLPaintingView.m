@@ -656,6 +656,7 @@ typedef struct {
 -(void)setGLBlendModel:(BOOL)clear
 {
     EAGLContext *prevContext = [EAGLContext currentContext];
+    [EAGLContext setCurrentContext:context];
     glEnable(GL_BLEND);
     if (clear) {
         brushTexture = [self _textureFromName:@"erase.png"];
