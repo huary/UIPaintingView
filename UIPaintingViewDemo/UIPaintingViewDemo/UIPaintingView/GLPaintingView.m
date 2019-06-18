@@ -901,7 +901,7 @@ typedef struct {
     
     if (vertexBuffer) {
         free(vertexBuffer);
-        vertexBuffer = nil;
+        vertexBuffer = NULL;
         vertexMax = 0;
     }
 }

@@ -138,7 +138,7 @@
     
     self.paintingView = [[UIPaintingView alloc] initWithFrame:frame];
     self.paintingView.backgroundColor = CLEAR_COLOR;
-    self.paintingView.brushWidth = 2.0;
+    self.paintingView.brushWidth = 20.0;
     self.paintingView.brushColor = RED_COLOR;
     self.paintingView.touchPaintEnabled = YES;
     self.paintingView.delegate = self;
